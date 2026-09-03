@@ -4,14 +4,19 @@ import AdminLayout from "../../components/AdminLayout";
 
 const Courses = () => {
   const [courses, setCourses] = useState([]);
+  const [lectures, setLectures] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "",
     level: "",
     description: "",
+    startDate: "",
+    endDate: "",
     image: null
   });
 
@@ -19,18 +24,30 @@ const Courses = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const fetchCourses = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await api.get("/courses");
+      const [
+        coursesResponse,
+        lecturesResponse
+      ] = await Promise.all([
+        api.get("/courses"),
+        api.get("/lectures")
+      ]);
 
-      setCourses(response.data.courses || []);
+      setCourses(
+        coursesResponse.data.courses || []
+      );
+
+      setLectures(
+        lecturesResponse.data.lectures || []
+      );
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "Failed to load courses"
+          "Failed to load course data"
       );
     } finally {
       setLoading(false);
@@ -38,11 +55,15 @@ const Courses = () => {
   };
 
   useEffect(() => {
-    fetchCourses();
+    fetchData();
   }, []);
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
+    const {
+      name,
+      value,
+      files
+    } = e.target;
 
     if (name === "image") {
       const file = files?.[0] || null;
@@ -53,8 +74,9 @@ const Courses = () => {
       });
 
       if (file) {
-        const imageUrl = URL.createObjectURL(file);
-        setPreview(imageUrl);
+        setPreview(
+          URL.createObjectURL(file)
+        );
       } else {
         setPreview("");
       }
@@ -76,10 +98,13 @@ const Courses = () => {
       name: "",
       level: "",
       description: "",
+      startDate: "",
+      endDate: "",
       image: null
     });
 
     setPreview("");
+    setEditingCourse(null);
   };
 
   const handleSubmit = async (e) => {
@@ -90,39 +115,216 @@ const Courses = () => {
       setError("");
       setSuccess("");
 
-      const data = new FormData();
-
-      data.append("name", formData.name);
-      data.append("level", formData.level);
-      data.append("description", formData.description);
-
-      if (formData.image) {
-        data.append("image", formData.image);
+      if (
+        new Date(formData.endDate) <
+        new Date(formData.startDate)
+      ) {
+        setError(
+          "End date cannot be before start date."
+        );
+        return;
       }
 
-      await api.post("/courses", data);
+      const data = new FormData();
 
-      setSuccess("Course created successfully.");
+      data.append(
+        "name",
+        formData.name
+      );
+
+      data.append(
+        "level",
+        formData.level
+      );
+
+      data.append(
+        "description",
+        formData.description
+      );
+
+      data.append(
+        "startDate",
+        formData.startDate
+      );
+
+      data.append(
+        "endDate",
+        formData.endDate
+      );
+
+      if (formData.image) {
+        data.append(
+          "image",
+          formData.image
+        );
+      }
+
+      if (editingCourse) {
+        await api.put(
+          `/courses/${editingCourse._id}`,
+          data
+        );
+
+        setSuccess(
+          "Course updated successfully."
+        );
+      } else {
+        await api.post(
+          "/courses",
+          data
+        );
+
+        setSuccess(
+          "Course created successfully."
+        );
+      }
 
       resetForm();
-
       setShowForm(false);
 
-      await fetchCourses();
+      await fetchData();
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "Failed to create course"
+          "Failed to save course"
       );
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleEdit = (course) => {
+    setEditingCourse(course);
+
+    setFormData({
+      name: course.name || "",
+      level: course.level || "",
+      description:
+        course.description || "",
+      startDate: course.startDate
+        ? new Date(course.startDate)
+            .toISOString()
+            .split("T")[0]
+        : "",
+      endDate: course.endDate
+        ? new Date(course.endDate)
+            .toISOString()
+            .split("T")[0]
+        : "",
+      image: null
+    });
+
+    setPreview(course.image || "");
+    setShowForm(true);
+    setError("");
+    setSuccess("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  };
+
   const handleOpenForm = () => {
+    if (showForm) {
+      resetForm();
+    }
+
     setShowForm(!showForm);
     setError("");
     setSuccess("");
+  };
+
+  const formatDate = (date) => {
+    if (!date) {
+      return "N/A";
+    }
+
+    return new Date(
+      date
+    ).toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      }
+    );
+  };
+
+  const getCourseLectures = (courseId) => {
+    return lectures.filter(
+      (lecture) =>
+        lecture.course?._id === courseId
+    );
+  };
+
+  const getCourseStatus = (course) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(
+      course.startDate
+    );
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date(
+      course.endDate
+    );
+    endDate.setHours(0, 0, 0, 0);
+
+    if (today < startDate) {
+      return {
+        label: "Upcoming",
+        className:
+          "bg-blue-500/10 text-blue-400 border-blue-500/20"
+      };
+    }
+
+    if (today > endDate) {
+      return {
+        label: "Completed",
+        className:
+          "bg-slate-500/10 text-slate-400 border-slate-500/20"
+      };
+    }
+
+    return {
+      label: "Active",
+      className:
+        "bg-green-500/10 text-green-400 border-green-500/20"
+    };
+  };
+
+  const getAssignmentWarning = (course) => {
+    const courseLectures =
+      getCourseLectures(course._id);
+
+    if (courseLectures.length > 0) {
+      return null;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startDate = new Date(
+      course.startDate
+    );
+    startDate.setHours(0, 0, 0, 0);
+
+    if (today < startDate) {
+      return {
+        type: "warning",
+        message:
+          "Instructor not assigned. Please assign an instructor before the course starts."
+      };
+    }
+
+    return {
+      type: "danger",
+      message:
+        "No instructor assigned to this course. Please assign an instructor immediately."
+    };
   };
 
   return (
@@ -143,7 +345,9 @@ const Courses = () => {
             onClick={handleOpenForm}
             className="bg-indigo-600 hover:bg-indigo-700 px-5 py-3 rounded-lg font-medium transition"
           >
-            {showForm ? "Close Form" : "+ Add Course"}
+            {showForm
+              ? "Close Form"
+              : "+ Add Course"}
           </button>
         </div>
 
@@ -162,7 +366,9 @@ const Courses = () => {
         {showForm && (
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8">
             <h2 className="text-xl font-semibold mb-6">
-              Add New Course
+              {editingCourse
+                ? "Edit Course"
+                : "Add New Course"}
             </h2>
 
             <form
@@ -215,6 +421,40 @@ const Courses = () => {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">
+                  Start Date
+                </label>
+
+                <input
+                  type="date"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">
+                  End Date
+                </label>
+
+                <input
+                  type="date"
+                  name="endDate"
+                  value={formData.endDate}
+                  min={
+                    formData.startDate ||
+                    undefined
+                  }
+                  onChange={handleChange}
+                  required
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
               <div className="md:col-span-2">
                 <label className="block text-sm text-slate-300 mb-2">
                   Description
@@ -233,7 +473,9 @@ const Courses = () => {
 
               <div className="md:col-span-2">
                 <label className="block text-sm text-slate-300 mb-2">
-                  Course Image
+                  {editingCourse
+                    ? "Replace Course Image"
+                    : "Course Image"}
                 </label>
 
                 <input
@@ -245,7 +487,9 @@ const Courses = () => {
                 />
 
                 <p className="text-xs text-slate-500 mt-2">
-                  Upload an image up to 5MB.
+                  {editingCourse
+                    ? "Leave empty to keep the current image."
+                    : "Upload an image up to 5MB."}
                 </p>
               </div>
 
@@ -274,7 +518,9 @@ const Courses = () => {
                   }`}
                 >
                   {submitting
-                    ? "Creating Course..."
+                    ? "Saving..."
+                    : editingCourse
+                    ? "Update Course"
                     : "Create Course"}
                 </button>
 
@@ -294,38 +540,53 @@ const Courses = () => {
           </div>
         )}
 
-        <div>
-          <div className="mb-5">
-            <h2 className="text-xl font-semibold">
-              All Courses
-            </h2>
+        <div className="mb-5">
+          <h2 className="text-xl font-semibold">
+            All Courses
+          </h2>
 
-            <p className="text-slate-400 text-sm mt-1">
-              {courses.length} course
-              {courses.length !== 1 ? "s" : ""} available
-            </p>
+          <p className="text-slate-400 text-sm mt-1">
+            {courses.length} course
+            {courses.length !== 1
+              ? "s"
+              : ""} available
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
+            Loading courses...
           </div>
+        ) : courses.length === 0 ? (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center">
+            <p className="text-slate-400">
+              No courses available.
+            </p>
 
-          {loading ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
-              Loading courses...
-            </div>
-          ) : courses.length === 0 ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center">
-              <p className="text-slate-400">
-                No courses available.
-              </p>
+            <button
+              onClick={() =>
+                setShowForm(true)
+              }
+              className="mt-4 bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 rounded-lg font-medium transition"
+            >
+              Add Your First Course
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {courses.map((course) => {
+              const status =
+                getCourseStatus(course);
 
-              <button
-                onClick={() => setShowForm(true)}
-                className="mt-4 bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 rounded-lg font-medium transition"
-              >
-                Add Your First Course
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {courses.map((course) => (
+              const warning =
+                getAssignmentWarning(course);
+
+              const courseLectures =
+                getCourseLectures(
+                  course._id
+                );
+
+              return (
                 <div
                   key={course._id}
                   className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition"
@@ -347,37 +608,77 @@ const Courses = () => {
                       {course.name}
                     </h3>
 
-                    <span className="shrink-0 text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full">
-                      {course.level}
+                    <span
+                      className={`shrink-0 text-xs border px-2.5 py-1 rounded-full ${status.className}`}
+                    >
+                      {status.label}
                     </span>
                   </div>
 
-                  <p className="text-slate-400 text-sm leading-6">
+                  <span className="inline-block text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full mb-4">
+                    {course.level}
+                  </span>
+
+                  <p className="text-slate-400 text-sm leading-6 mb-4">
                     {course.description}
                   </p>
 
-                  <div className="mt-5 pt-4 border-t border-slate-800">
-                    <p className="text-xs text-slate-500">
-                      Created{" "}
-                      {course.createdAt
-                        ? new Date(
-                            course.createdAt
-                          ).toLocaleDateString(
-                            "en-IN",
-                            {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric"
-                            }
-                          )
-                        : "N/A"}
+                  <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
+                    <p className="text-xs text-slate-500 mb-1">
+                      Course Duration
+                    </p>
+
+                    <p className="text-sm text-slate-200">
+                      {formatDate(
+                        course.startDate
+                      )}{" "}
+                      →{" "}
+                      {formatDate(
+                        course.endDate
+                      )}
                     </p>
                   </div>
+
+                  {warning && (
+                    <div
+                      className={`rounded-lg p-3 mb-4 border ${
+                        warning.type ===
+                        "danger"
+                          ? "bg-red-500/10 border-red-500/20 text-red-400"
+                          : "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"
+                      }`}
+                    >
+                      <p className="text-xs leading-5">
+                        {warning.message}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                    <div>
+                      <p className="text-xs text-slate-500">
+                        Scheduled Lectures
+                      </p>
+
+                      <p className="text-sm font-medium text-slate-200 mt-1">
+                        {courseLectures.length}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        handleEdit(course)
+                      }
+                      className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-sm font-medium transition"
+                    >
+                      ✏️ Edit
+                    </button>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </AdminLayout>
   );

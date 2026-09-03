@@ -17,18 +17,63 @@ const uploadToCloudinary = (fileBuffer) => {
       }
     );
 
-    streamifier.createReadStream(fileBuffer).pipe(uploadStream);
+    streamifier
+      .createReadStream(fileBuffer)
+      .pipe(uploadStream);
   });
+};
+
+const normalizeDate = (date) => {
+  const normalizedDate = new Date(date);
+
+  if (isNaN(normalizedDate.getTime())) {
+    return null;
+  }
+
+  normalizedDate.setHours(0, 0, 0, 0);
+
+  return normalizedDate;
 };
 
 const createCourse = async (req, res) => {
   try {
-    const { name, level, description } = req.body;
+    const {
+      name,
+      level,
+      description,
+      startDate,
+      endDate
+    } = req.body;
 
-    if (!name || !level || !description) {
+    if (
+      !name ||
+      !level ||
+      !description ||
+      !startDate ||
+      !endDate
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Name, level and description are required"
+        message:
+          "Name, level, description, start date and end date are required"
+      });
+    }
+
+    const courseStartDate = normalizeDate(startDate);
+    const courseEndDate = normalizeDate(endDate);
+
+    if (!courseStartDate || !courseEndDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid start date or end date"
+      });
+    }
+
+    if (courseEndDate < courseStartDate) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "End date cannot be before start date"
       });
     }
 
@@ -43,10 +88,12 @@ const createCourse = async (req, res) => {
     }
 
     const course = await Course.create({
-      name,
+      name: name.trim(),
       level,
-      description,
-      image
+      description: description.trim(),
+      image,
+      startDate: courseStartDate,
+      endDate: courseEndDate
     });
 
     res.status(201).json({
@@ -55,7 +102,10 @@ const createCourse = async (req, res) => {
       course
     });
   } catch (error) {
-    console.error("Create course error:", error);
+    console.error(
+      "Create course error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
@@ -67,7 +117,10 @@ const createCourse = async (req, res) => {
 const getCourses = async (req, res) => {
   try {
     const courses = await Course.find()
-      .sort({ createdAt: -1 });
+      .sort({
+        startDate: 1,
+        createdAt: -1
+      });
 
     res.status(200).json({
       success: true,
@@ -75,7 +128,10 @@ const getCourses = async (req, res) => {
       courses
     });
   } catch (error) {
-    console.error("Get courses error:", error);
+    console.error(
+      "Get courses error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
@@ -102,6 +158,98 @@ const getCourseById = async (req, res) => {
       course
     });
   } catch (error) {
+    console.error(
+      "Get course error:",
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
+const updateCourse = async (req, res) => {
+  try {
+    const {
+      name,
+      level,
+      description,
+      startDate,
+      endDate
+    } = req.body;
+
+    const course = await Course.findById(
+      req.params.id
+    );
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found"
+      });
+    }
+
+    if (
+      !name ||
+      !level ||
+      !description ||
+      !startDate ||
+      !endDate
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Name, level, description, start date and end date are required"
+      });
+    }
+
+    const courseStartDate = normalizeDate(startDate);
+    const courseEndDate = normalizeDate(endDate);
+
+    if (!courseStartDate || !courseEndDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid start date or end date"
+      });
+    }
+
+    if (courseEndDate < courseStartDate) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "End date cannot be before start date"
+      });
+    }
+
+    course.name = name.trim();
+    course.level = level;
+    course.description = description.trim();
+    course.startDate = courseStartDate;
+    course.endDate = courseEndDate;
+
+    if (req.file) {
+      const result = await uploadToCloudinary(
+        req.file.buffer
+      );
+
+      course.image = result.secure_url;
+    }
+
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Course updated successfully",
+      course
+    });
+  } catch (error) {
+    console.error(
+      "Update course error:",
+      error
+    );
+
     res.status(500).json({
       success: false,
       message: "Server error"
@@ -112,5 +260,6 @@ const getCourseById = async (req, res) => {
 module.exports = {
   createCourse,
   getCourses,
-  getCourseById
+  getCourseById,
+  updateCourse
 };

@@ -11,7 +11,11 @@ const courseSchema = new mongoose.Schema(
     level: {
       type: String,
       required: true,
-      enum: ["Beginner", "Intermediate", "Advanced"]
+      enum: [
+        "Beginner",
+        "Intermediate",
+        "Advanced"
+      ]
     },
 
     description: {
@@ -23,12 +27,37 @@ const courseSchema = new mongoose.Schema(
     image: {
       type: String,
       default: ""
+    },
+
+    startDate: {
+      type: Date,
+      required: true
+    },
+
+    endDate: {
+      type: Date,
+      required: true
     }
   },
   {
     timestamps: true
   }
 );
+
+courseSchema.pre("validate", function (next) {
+  if (
+    this.startDate &&
+    this.endDate &&
+    this.endDate < this.startDate
+  ) {
+    this.invalidate(
+      "endDate",
+      "End date cannot be before start date."
+    );
+  }
+
+  next();
+});
 
 const Course =
   mongoose.models.Course ||

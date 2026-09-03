@@ -3,7 +3,8 @@ const express = require("express");
 const {
   createCourse,
   getCourses,
-  getCourseById
+  getCourseById,
+  updateCourse
 } = require("../controllers/courseController");
 
 const protect = require("../middleware/authMiddleware");
@@ -30,6 +31,14 @@ router.get(
   "/:id",
   protect,
   getCourseById
+);
+
+router.put(
+  "/:id",
+  protect,
+  authorizeRoles("admin"),
+  upload.single("image"),
+  updateCourse
 );
 
 module.exports = router;
