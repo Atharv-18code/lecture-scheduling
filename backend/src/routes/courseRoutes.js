@@ -8,25 +8,24 @@ const {
 
 const protect = require("../middleware/authMiddleware");
 const authorizeRoles = require("../middleware/roleMiddleware");
+const upload = require("../middleware/uploadMiddleware");
 
 const router = express.Router();
 
-// Admin can create course
 router.post(
   "/",
   protect,
   authorizeRoles("admin"),
+  upload.single("image"),
   createCourse
 );
 
-// Logged-in users can view courses
 router.get(
   "/",
   protect,
   getCourses
 );
 
-// Logged-in users can view one course
 router.get(
   "/:id",
   protect,

@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 
 require("dotenv").config();
 
-const User = require("./models/User");
+const User = require("./models/user");
 
 
 const seedUsers = async () => {

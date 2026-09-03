@@ -7,16 +7,11 @@ import {
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Instructors from "./pages/admin/Instructors";
+import Courses from "./pages/admin/Courses";
+import Lectures from "./pages/admin/Lectures";
+import InstructorDashboard from "./pages/instructor/InstructorDashboard";
 
-const InstructorDashboard = () => {
-  return (
-    <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-      <h1 className="text-3xl font-bold">
-        Instructor Dashboard
-      </h1>
-    </div>
-  );
-};
 
 function App() {
   return (
@@ -55,7 +50,41 @@ function App() {
         }
       />
 
+      <Route
+        path="/admin/instructors"
+        element={
+          <ProtectedRoute role="admin">
+            <Instructors />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/courses"
+        element={
+          <ProtectedRoute role="admin">
+            <Courses />
+          </ProtectedRoute>
+  }
+      />
+      <Route
+        path="/admin/lectures"
+        element={
+          <ProtectedRoute role="admin">
+            <Lectures />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/lectures"
+        element={
+          <ProtectedRoute role="admin">
+            <Lectures />
+          </ProtectedRoute>
+        }
+       />
+
     </Routes>
+      
   );
 }
 

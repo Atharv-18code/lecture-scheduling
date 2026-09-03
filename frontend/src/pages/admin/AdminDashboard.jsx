@@ -1,243 +1,268 @@
-import { useAuth } from "../../context/AuthContext";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import api from "../../services/api";
+import AdminLayout from "../../components/AdminLayout";
 
 const AdminDashboard = () => {
-  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const [stats, setStats] = useState({
+    instructors: 0,
+    courses: 0,
+    lectures: 0,
+    upcomingLectures: 0
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [
+        instructorsResponse,
+        coursesResponse,
+        lecturesResponse
+      ] = await Promise.all([
+        api.get("/instructors"),
+        api.get("/courses"),
+        api.get("/lectures")
+      ]);
+
+      const lectures = lecturesResponse.data.lectures || [];
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const upcomingLectures = lectures.filter(
+        (lecture) => new Date(lecture.date) >= today
+      );
+
+      setStats({
+        instructors:
+          instructorsResponse.data.count || 0,
+
+        courses:
+          coursesResponse.data.count || 0,
+
+        lectures:
+          lecturesResponse.data.count || 0,
+
+        upcomingLectures:
+          upcomingLectures.length
+      });
+
+    } catch (error) {
+      console.error("Dashboard stats error:", error);
+
+      setError(
+        error.response?.data?.message ||
+          "Failed to load dashboard statistics"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const statCards = [
+    {
+      title: "Total Instructors",
+      value: stats.instructors,
+      icon: "👨‍🏫",
+      description: "Registered instructors",
+      path: "/admin/instructors"
+    },
+    {
+      title: "Total Courses",
+      value: stats.courses,
+      icon: "📚",
+      description: "Available courses",
+      path: "/admin/courses"
+    },
+    {
+      title: "Scheduled Lectures",
+      value: stats.lectures,
+      icon: "📅",
+      description: "All scheduled lectures",
+      path: "/admin/lectures"
+    },
+    {
+      title: "Upcoming Lectures",
+      value: stats.upcomingLectures,
+      icon: "⏰",
+      description: "Future lectures",
+      path: "/admin/lectures"
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex">
+    <AdminLayout>
 
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 border-r border-slate-800 min-h-screen">
+      {/* Header */}
+      <header className="h-20 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-8">
 
-        {/* Logo */}
-        <div className="h-20 flex items-center px-6 border-b border-slate-800">
-          <div>
-            <h1 className="text-xl font-bold text-white">
-              LectureHub
-            </h1>
-
-            <p className="text-xs text-slate-500">
-              Admin Panel
-            </p>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="p-4 space-y-2">
-
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-600 text-white">
-            <span>📊</span>
+        <div>
+          <h2 className="text-xl font-semibold">
             Dashboard
-          </button>
+          </h2>
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
-            <span>👨‍🏫</span>
-            Instructors
-          </button>
+          <p className="text-sm text-slate-400">
+            Overview of your lecture scheduling system
+          </p>
+        </div>
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
-            <span>📚</span>
-            Courses
-          </button>
+        <button
+          onClick={fetchDashboardStats}
+          className="border border-slate-700 hover:bg-slate-800 px-4 py-2 rounded-lg text-sm transition"
+        >
+          Refresh
+        </button>
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
-            <span>📅</span>
-            Lectures
-          </button>
+      </header>
 
-        </nav>
+      {/* Content */}
+      <div className="p-8">
 
-        {/* Logout */}
-        <div className="absolute bottom-6 left-0 w-64 px-4">
+        {error && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg">
+            {error}
+          </div>
+        )}
 
-          <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 transition"
-          >
-            <span>↪</span>
-            Logout
-          </button>
+        {/* Welcome */}
+        <div className="mb-8">
+
+          <h1 className="text-3xl font-bold">
+            Dashboard Overview
+          </h1>
+
+          <p className="text-slate-400 mt-2">
+            Monitor instructors, courses and lecture schedules.
+          </p>
 
         </div>
 
-      </aside>
+        {/* Statistics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
 
-      {/* Main Content */}
-      <main className="flex-1">
+          {statCards.map((stat) => (
+            <button
+              key={stat.title}
+              onClick={() => navigate(stat.path)}
+              className="text-left bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-indigo-500/50 hover:bg-slate-900/80 transition"
+            >
 
-        {/* Header */}
-        <header className="h-20 border-b border-slate-800 flex items-center justify-between px-8">
+              <div className="flex items-center justify-between">
 
-          <div>
-            <h2 className="text-xl font-semibold">
-              Dashboard
-            </h2>
-
-            <p className="text-sm text-slate-500">
-              Manage your lecture scheduling system
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-
-            <div className="text-right">
-              <p className="text-sm font-medium">
-                {user?.name}
-              </p>
-
-              <p className="text-xs text-slate-500">
-                Administrator
-              </p>
-            </div>
-
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-semibold">
-              {user?.name?.charAt(0)}
-            </div>
-
-          </div>
-
-        </header>
-
-        {/* Dashboard Content */}
-        <div className="p-8">
-
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">
-              Welcome back, {user?.name?.split(" ")[0]} 👋
-            </h1>
-
-            <p className="text-slate-400 mt-2">
-              Here's what's happening with your scheduling system.
-            </p>
-          </div>
-
-          {/* Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-              <p className="text-sm text-slate-400">
-                Total Instructors
-              </p>
-
-              <h3 className="text-3xl font-bold mt-3">
-                3
-              </h3>
-
-              <p className="text-xs text-slate-500 mt-2">
-                Active instructors
-              </p>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-              <p className="text-sm text-slate-400">
-                Total Courses
-              </p>
-
-              <h3 className="text-3xl font-bold mt-3">
-                0
-              </h3>
-
-              <p className="text-xs text-slate-500 mt-2">
-                Available courses
-              </p>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-              <p className="text-sm text-slate-400">
-                Scheduled Lectures
-              </p>
-
-              <h3 className="text-3xl font-bold mt-3">
-                0
-              </h3>
-
-              <p className="text-xs text-slate-500 mt-2">
-                Total scheduled
-              </p>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-              <p className="text-sm text-slate-400">
-                Upcoming
-              </p>
-
-              <h3 className="text-3xl font-bold mt-3">
-                0
-              </h3>
-
-              <p className="text-xs text-slate-500 mt-2">
-                Upcoming lectures
-              </p>
-            </div>
-
-          </div>
-
-          {/* Quick Actions */}
-          <div className="mt-8">
-
-            <h2 className="text-xl font-semibold mb-4">
-              Quick Actions
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-
-              <button className="text-left bg-slate-900 border border-slate-800 hover:border-blue-500 rounded-xl p-6 transition">
-
-                <div className="text-2xl mb-4">
-                  👨‍🏫
+                <div className="w-11 h-11 bg-indigo-500/10 rounded-lg flex items-center justify-center text-xl">
+                  {stat.icon}
                 </div>
 
-                <h3 className="font-semibold">
-                  Manage Instructors
-                </h3>
+                <span className="text-slate-600">
+                  →
+                </span>
 
-                <p className="text-sm text-slate-500 mt-2">
-                  Add and manage instructors.
-                </p>
+              </div>
 
-              </button>
+              <p className="text-slate-400 text-sm mt-5">
+                {stat.title}
+              </p>
 
-              <button className="text-left bg-slate-900 border border-slate-800 hover:border-blue-500 rounded-xl p-6 transition">
+              <p className="text-3xl font-bold mt-1">
 
-                <div className="text-2xl mb-4">
-                  📚
-                </div>
+                {loading ? (
+                  <span className="text-slate-600">
+                    ...
+                  </span>
+                ) : (
+                  stat.value
+                )}
 
-                <h3 className="font-semibold">
-                  Add Course
-                </h3>
+              </p>
 
-                <p className="text-sm text-slate-500 mt-2">
-                  Create a new course.
-                </p>
+              <p className="text-xs text-slate-500 mt-2">
+                {stat.description}
+              </p>
 
-              </button>
+            </button>
+          ))}
 
-              <button className="text-left bg-slate-900 border border-slate-800 hover:border-blue-500 rounded-xl p-6 transition">
+        </div>
 
-                <div className="text-2xl mb-4">
-                  📅
-                </div>
+        {/* Quick Actions */}
+        <div className="mt-10">
 
-                <h3 className="font-semibold">
-                  Schedule Lecture
-                </h3>
+          <h2 className="text-xl font-semibold mb-5">
+            Quick Actions
+          </h2>
 
-                <p className="text-sm text-slate-500 mt-2">
-                  Assign a lecture to an instructor.
-                </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-              </button>
+            <button
+              onClick={() => navigate("/admin/instructors")}
+              className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-6 text-left transition"
+            >
+              <div className="text-2xl mb-4">
+                👨‍🏫
+              </div>
 
-            </div>
+              <h3 className="font-semibold">
+                Manage Instructors
+              </h3>
+
+              <p className="text-sm text-slate-400 mt-2">
+                Add and view instructors.
+              </p>
+            </button>
+
+            <button
+              onClick={() => navigate("/admin/courses")}
+              className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-6 text-left transition"
+            >
+              <div className="text-2xl mb-4">
+                📚
+              </div>
+
+              <h3 className="font-semibold">
+                Manage Courses
+              </h3>
+
+              <p className="text-sm text-slate-400 mt-2">
+                Create and view courses.
+              </p>
+            </button>
+
+            <button
+              onClick={() => navigate("/admin/lectures")}
+              className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-6 text-left transition"
+            >
+              <div className="text-2xl mb-4">
+                📅
+              </div>
+
+              <h3 className="font-semibold">
+                Schedule Lecture
+              </h3>
+
+              <p className="text-sm text-slate-400 mt-2">
+                Assign courses to instructors.
+              </p>
+            </button>
 
           </div>
 
         </div>
 
-      </main>
+      </div>
 
-    </div>
+    </AdminLayout>
   );
 };
 

@@ -3,7 +3,8 @@ const express = require("express");
 const {
   getInstructors,
   getInstructorById,
-  getMyLectures
+  getMyLectures,
+  createInstructor
 } = require("../controllers/instructorController");
 
 const protect = require("../middleware/authMiddleware");
@@ -19,7 +20,15 @@ router.get(
   getMyLectures
 );
 
-// Admin routes
+// Admin creates instructor
+router.post(
+  "/",
+  protect,
+  authorizeRoles("admin"),
+  createInstructor
+);
+
+// Admin gets all instructors
 router.get(
   "/",
   protect,
@@ -27,6 +36,7 @@ router.get(
   getInstructors
 );
 
+// Admin gets instructor by ID
 router.get(
   "/:id",
   protect,
