@@ -1,64 +1,224 @@
 import { useEffect, useState } from "react";
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  X,
+  CalendarDays,
+  Clock,
+  User,
+  Image as ImageIcon
+} from "lucide-react";
+
 import api from "../../services/api";
-import AdminLayout from "../../components/AdminLayout";
+
+
+const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday"
+];
+
+
+const emptyForm = {
+  name: "",
+  level: "Beginner",
+  description: "",
+  startDate: "",
+  endDate: "",
+  weeklyDays: [],
+  startTime: "",
+  endTime: "",
+  instructor: "",
+  image: null
+};
+
 
 const Courses = () => {
-  const [courses, setCourses] = useState([]);
-  const [lectures, setLectures] = useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [editingCourse, setEditingCourse] = useState(null);
+  const [courses, setCourses] =
+    useState([]);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    level: "",
-    description: "",
-    startDate: "",
-    endDate: "",
-    image: null
-  });
+  const [instructors, setInstructors] =
+    useState([]);
 
-  const [preview, setPreview] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [search, setSearch] =
+    useState("");
+
+  const [showModal, setShowModal] =
+    useState(false);
+
+  const [editingCourse, setEditingCourse] =
+    useState(null);
+
+  const [form, setForm] =
+    useState(emptyForm);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+
+  // ------------------------------------------------
+  // FETCH DATA
+  // ------------------------------------------------
 
   const fetchData = async () => {
+
     try {
+
       setLoading(true);
       setError("");
 
       const [
         coursesResponse,
-        lecturesResponse
+        instructorsResponse
       ] = await Promise.all([
         api.get("/courses"),
-        api.get("/lectures")
+        api.get("/instructors")
       ]);
 
       setCourses(
         coursesResponse.data.courses || []
       );
 
-      setLectures(
-        lecturesResponse.data.lectures || []
+      setInstructors(
+        instructorsResponse.data.instructors || []
       );
+
     } catch (error) {
+
+      console.error(
+        "Fetch courses error:",
+        error
+      );
+
       setError(
         error.response?.data?.message ||
-          "Failed to load course data"
+        "Failed to load courses"
       );
+
     } finally {
+
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchData();
   }, []);
 
+
+  // ------------------------------------------------
+  // OPEN CREATE
+  // ------------------------------------------------
+
+  const openCreateModal = () => {
+
+    setEditingCourse(null);
+
+    setForm({
+      ...emptyForm
+    });
+
+    setError("");
+
+    setShowModal(true);
+  };
+
+
+  // ------------------------------------------------
+  // OPEN EDIT
+  // ------------------------------------------------
+
+  const openEditModal = (course) => {
+
+    setEditingCourse(course);
+
+    setForm({
+      name: course.name || "",
+
+      level:
+        course.level ||
+        "Beginner",
+
+      description:
+        course.description || "",
+
+      startDate:
+        course.startDate
+          ? course.startDate.substring(0, 10)
+          : "",
+
+      endDate:
+        course.endDate
+          ? course.endDate.substring(0, 10)
+          : "",
+
+      weeklyDays:
+        course.weeklyDays ||
+        course.scheduleDays ||
+        [],
+
+      startTime:
+        course.startTime || "",
+
+      endTime:
+        course.endTime || "",
+
+      instructor:
+        course.instructor?._id ||
+        course.instructor ||
+        "",
+
+      image: null
+    });
+
+    setError("");
+
+    setShowModal(true);
+  };
+
+
+  // ------------------------------------------------
+  // CLOSE MODAL
+  // ------------------------------------------------
+
+  const closeModal = () => {
+
+    if (saving) {
+      return;
+    }
+
+    setShowModal(false);
+
+    setEditingCourse(null);
+
+    setForm({
+      ...emptyForm
+    });
+
+    setError("");
+  };
+
+
+  // ------------------------------------------------
+  // HANDLE INPUT
+  // ------------------------------------------------
+
   const handleChange = (e) => {
+
     const {
       name,
       value,
@@ -66,346 +226,745 @@ const Courses = () => {
     } = e.target;
 
     if (name === "image") {
-      const file = files?.[0] || null;
 
-      setFormData({
-        ...formData,
-        image: file
-      });
-
-      if (file) {
-        setPreview(
-          URL.createObjectURL(file)
-        );
-      } else {
-        setPreview("");
-      }
+      setForm((previous) => ({
+        ...previous,
+        image:
+          files?.[0] || null
+      }));
 
       return;
     }
 
-    setFormData({
-      ...formData,
+    setForm((previous) => ({
+      ...previous,
       [name]: value
-    });
-
-    setError("");
-    setSuccess("");
+    }));
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      level: "",
-      description: "",
-      startDate: "",
-      endDate: "",
-      image: null
-    });
 
-    setPreview("");
-    setEditingCourse(null);
+  // ------------------------------------------------
+  // HANDLE WEEKLY DAY
+  // ------------------------------------------------
+
+  const toggleDay = (day) => {
+
+    setForm((previous) => {
+
+      const alreadySelected =
+        previous.weeklyDays.includes(day);
+
+      return {
+        ...previous,
+
+        weeklyDays: alreadySelected
+          ? previous.weeklyDays.filter(
+              (item) => item !== day
+            )
+          : [
+              ...previous.weeklyDays,
+              day
+            ]
+      };
+    });
   };
+
+
+  // ------------------------------------------------
+  // VALIDATION
+  // ------------------------------------------------
+
+  const validateForm = () => {
+
+    if (
+      !form.name.trim() ||
+      !form.description.trim() ||
+      !form.startDate ||
+      !form.endDate ||
+      !form.startTime ||
+      !form.endTime ||
+      !form.instructor
+    ) {
+      return "Please fill all required fields.";
+    }
+
+
+    if (
+      form.weeklyDays.length === 0
+    ) {
+      return "Select at least one weekly day.";
+    }
+
+
+    if (
+      form.endDate <
+      form.startDate
+    ) {
+      return "End date cannot be before start date.";
+    }
+
+
+    if (
+      form.startTime >=
+      form.endTime
+    ) {
+      return "End time must be after start time.";
+    }
+
+
+    return "";
+  };
+
+
+  // ------------------------------------------------
+  // SAVE COURSE
+  // ------------------------------------------------
 
   const handleSubmit = async (e) => {
+
     e.preventDefault();
 
+    const validationError =
+      validateForm();
+
+    if (validationError) {
+
+      setError(validationError);
+
+      return;
+    }
+
+
     try {
-      setSubmitting(true);
+
+      setSaving(true);
       setError("");
-      setSuccess("");
 
-      if (
-        new Date(formData.endDate) <
-        new Date(formData.startDate)
-      ) {
-        setError(
-          "End date cannot be before start date."
-        );
-        return;
-      }
 
-      const data = new FormData();
+      const formData =
+        new FormData();
 
-      data.append(
+
+      formData.append(
         "name",
-        formData.name
+        form.name.trim()
       );
 
-      data.append(
+      formData.append(
         "level",
-        formData.level
+        form.level
       );
 
-      data.append(
+      formData.append(
         "description",
-        formData.description
+        form.description.trim()
       );
 
-      data.append(
+      formData.append(
         "startDate",
-        formData.startDate
+        form.startDate
       );
 
-      data.append(
+      formData.append(
         "endDate",
-        formData.endDate
+        form.endDate
       );
 
-      if (formData.image) {
-        data.append(
+      formData.append(
+        "weeklyDays",
+        JSON.stringify(
+          form.weeklyDays
+        )
+      );
+
+      formData.append(
+        "startTime",
+        form.startTime
+      );
+
+      formData.append(
+        "endTime",
+        form.endTime
+      );
+
+      formData.append(
+        "instructor",
+        form.instructor
+      );
+
+
+      // --------------------------------
+      // IMAGE IS OPTIONAL
+      // --------------------------------
+
+      if (form.image) {
+
+        formData.append(
           "image",
-          formData.image
+          form.image
         );
       }
+
+
+      // --------------------------------
+      // CREATE / UPDATE
+      // --------------------------------
 
       if (editingCourse) {
+
         await api.put(
           `/courses/${editingCourse._id}`,
-          data
+          formData
         );
 
-        setSuccess(
-          "Course updated successfully."
-        );
       } else {
+
         await api.post(
           "/courses",
-          data
-        );
-
-        setSuccess(
-          "Course created successfully."
+          formData
         );
       }
 
-      resetForm();
-      setShowForm(false);
+
+      // --------------------------------
+      // REFRESH
+      // --------------------------------
 
       await fetchData();
+
+      closeModal();
+
     } catch (error) {
+
+      console.error(
+        "Save course error:",
+        error
+      );
+
       setError(
         error.response?.data?.message ||
-          "Failed to save course"
+        "Failed to save course"
       );
+
     } finally {
-      setSubmitting(false);
+
+      setSaving(false);
     }
   };
 
-  const handleEdit = (course) => {
-    setEditingCourse(course);
 
-    setFormData({
-      name: course.name || "",
-      level: course.level || "",
-      description:
-        course.description || "",
-      startDate: course.startDate
-        ? new Date(course.startDate)
-            .toISOString()
-            .split("T")[0]
-        : "",
-      endDate: course.endDate
-        ? new Date(course.endDate)
-            .toISOString()
-            .split("T")[0]
-        : "",
-      image: null
-    });
+  // ------------------------------------------------
+  // DELETE COURSE
+  // ------------------------------------------------
 
-    setPreview(course.image || "");
-    setShowForm(true);
-    setError("");
-    setSuccess("");
+  const handleDelete = async (course) => {
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-  };
+    const confirmed =
+      window.confirm(
+        `Delete "${course.name}"?`
+      );
 
-  const handleOpenForm = () => {
-    if (showForm) {
-      resetForm();
+    if (!confirmed) {
+      return;
     }
 
-    setShowForm(!showForm);
-    setError("");
-    setSuccess("");
+
+    try {
+
+      await api.delete(
+        `/courses/${course._id}`
+      );
+
+      await fetchData();
+
+    } catch (error) {
+
+      console.error(
+        "Delete course error:",
+        error
+      );
+
+      alert(
+        error.response?.data?.message ||
+        "Failed to delete course"
+      );
+    }
   };
+
+
+  // ------------------------------------------------
+  // FILTER
+  // ------------------------------------------------
+
+  const filteredCourses =
+    courses.filter((course) => {
+
+      const query =
+        search.toLowerCase();
+
+      return (
+        course.name
+          ?.toLowerCase()
+          .includes(query) ||
+
+        course.level
+          ?.toLowerCase()
+          .includes(query) ||
+
+        course.instructor?.name
+          ?.toLowerCase()
+          .includes(query)
+      );
+    });
+
+
+  // ------------------------------------------------
+  // FORMAT DATE
+  // ------------------------------------------------
 
   const formatDate = (date) => {
+
     if (!date) {
-      return "N/A";
+      return "-";
     }
 
-    return new Date(
-      date
-    ).toLocaleDateString(
-      "en-IN",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      }
-    );
+    return new Date(date)
+      .toLocaleDateString(
+        "en-IN",
+        {
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        }
+      );
   };
 
-  const getCourseLectures = (courseId) => {
-    return lectures.filter(
-      (lecture) =>
-        lecture.course?._id === courseId
-    );
-  };
 
-  const getCourseStatus = (course) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const startDate = new Date(
-      course.startDate
-    );
-    startDate.setHours(0, 0, 0, 0);
-
-    const endDate = new Date(
-      course.endDate
-    );
-    endDate.setHours(0, 0, 0, 0);
-
-    if (today < startDate) {
-      return {
-        label: "Upcoming",
-        className:
-          "bg-blue-500/10 text-blue-400 border-blue-500/20"
-      };
-    }
-
-    if (today > endDate) {
-      return {
-        label: "Completed",
-        className:
-          "bg-slate-500/10 text-slate-400 border-slate-500/20"
-      };
-    }
-
-    return {
-      label: "Active",
-      className:
-        "bg-green-500/10 text-green-400 border-green-500/20"
-    };
-  };
-
-  const getAssignmentWarning = (course) => {
-    const courseLectures =
-      getCourseLectures(course._id);
-
-    if (courseLectures.length > 0) {
-      return null;
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const startDate = new Date(
-      course.startDate
-    );
-    startDate.setHours(0, 0, 0, 0);
-
-    if (today < startDate) {
-      return {
-        type: "warning",
-        message:
-          "Instructor not assigned. Please assign an instructor before the course starts."
-      };
-    }
-
-    return {
-      type: "danger",
-      message:
-        "No instructor assigned to this course. Please assign an instructor immediately."
-    };
-  };
+  // ------------------------------------------------
+  // UI
+  // ------------------------------------------------
 
   return (
-    <AdminLayout>
-      <div className="p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">
-              Courses
-            </h1>
+    <div className="min-h-screen bg-gray-50 p-6">
 
-            <p className="text-slate-400 mt-1">
-              Create and manage courses
-            </p>
-          </div>
+      {/* HEADER */}
 
-          <button
-            onClick={handleOpenForm}
-            className="bg-indigo-600 hover:bg-indigo-700 px-5 py-3 rounded-lg font-medium transition"
-          >
-            {showForm
-              ? "Close Form"
-              : "+ Add Course"}
-          </button>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Courses
+          </h1>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Manage courses and their weekly lecture schedules.
+          </p>
         </div>
 
-        {error && (
-          <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg">
-            {error}
-          </div>
-        )}
 
-        {success && (
-          <div className="mb-6 bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-lg">
-            {success}
-          </div>
-        )}
+        <button
+          onClick={openCreateModal}
+          className="flex items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+        >
+          <Plus size={18} />
 
-        {showForm && (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8">
-            <h2 className="text-xl font-semibold mb-6">
-              {editingCourse
-                ? "Edit Course"
-                : "Add New Course"}
-            </h2>
+          Add Course
+        </button>
+
+      </div>
+
+
+      {/* SEARCH */}
+
+      <div className="mb-6">
+
+        <div className="relative">
+
+          <Search
+            size={18}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+
+          <input
+            type="text"
+            placeholder="Search courses..."
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+            className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-gray-400"
+          />
+
+        </div>
+
+      </div>
+
+
+      {/* ERROR */}
+
+      {error && !showModal && (
+
+        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+
+      )}
+
+
+      {/* LOADING */}
+
+      {loading ? (
+
+        <div className="rounded-xl bg-white p-10 text-center text-gray-500">
+          Loading courses...
+        </div>
+
+      ) : filteredCourses.length === 0 ? (
+
+        <div className="rounded-xl bg-white p-10 text-center">
+
+          <CalendarDays
+            size={40}
+            className="mx-auto mb-3 text-gray-400"
+          />
+
+          <p className="font-medium text-gray-800">
+            No courses found
+          </p>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Create your first course to start scheduling lectures.
+          </p>
+
+        </div>
+
+      ) : (
+
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+
+          <div className="overflow-x-auto">
+
+            <table className="min-w-full">
+
+              <thead className="border-b border-gray-200 bg-gray-50">
+
+                <tr>
+
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                    Course
+                  </th>
+
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                    Instructor
+                  </th>
+
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                    Schedule
+                  </th>
+
+                  <th className="px-5 py-3 text-left text-xs font-semibold uppercase text-gray-500">
+                    Duration
+                  </th>
+
+                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase text-gray-500">
+                    Actions
+                  </th>
+
+                </tr>
+
+              </thead>
+
+
+              <tbody className="divide-y divide-gray-100">
+
+                {filteredCourses.map(
+                  (course) => (
+
+                    <tr
+                      key={course._id}
+                      className="hover:bg-gray-50"
+                    >
+
+                      {/* COURSE */}
+
+                      <td className="px-5 py-4">
+
+                        <div className="flex items-center gap-3">
+
+                          {course.image ? (
+
+                            <img
+                              src={course.image}
+                              alt={course.name}
+                              className="h-12 w-12 rounded-lg object-cover"
+                            />
+
+                          ) : (
+
+                            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100">
+
+                              <ImageIcon
+                                size={20}
+                                className="text-gray-400"
+                              />
+
+                            </div>
+
+                          )}
+
+
+                          <div>
+
+                            <p className="font-semibold text-gray-900">
+                              {course.name}
+                            </p>
+
+                            <p className="text-sm text-gray-500">
+                              {course.level}
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                      </td>
+
+
+                      {/* INSTRUCTOR */}
+
+                      <td className="px-5 py-4">
+
+                        <div className="flex items-center gap-2">
+
+                          <User
+                            size={16}
+                            className="text-gray-400"
+                          />
+
+                          <div>
+
+                            <p className="text-sm font-medium text-gray-800">
+                              {course.instructor?.name ||
+                                "Unknown"}
+                            </p>
+
+                            <p className="text-xs text-gray-500">
+                              {course.instructor?.email ||
+                                ""}
+                            </p>
+
+                          </div>
+
+                        </div>
+
+                      </td>
+
+
+                      {/* SCHEDULE */}
+
+                      <td className="px-5 py-4">
+
+                        <div className="flex flex-wrap gap-1">
+
+                          {(course.weeklyDays ||
+                            course.scheduleDays ||
+                            []).map(
+                              (day) => (
+
+                                <span
+                                  key={day}
+                                  className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700"
+                                >
+                                  {day.substring(
+                                    0,
+                                    3
+                                  )}
+                                </span>
+
+                              )
+                            )}
+
+                        </div>
+
+                        <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+
+                          <Clock size={13} />
+
+                          {course.startTime}
+                          {" - "}
+                          {course.endTime}
+
+                        </div>
+
+                      </td>
+
+
+                      {/* DURATION */}
+
+                      <td className="px-5 py-4">
+
+                        <div className="text-sm text-gray-700">
+
+                          {formatDate(
+                            course.startDate
+                          )}
+
+                        </div>
+
+                        <div className="text-xs text-gray-500">
+
+                          to{" "}
+
+                          {formatDate(
+                            course.endDate
+                          )}
+
+                        </div>
+
+                      </td>
+
+
+                      {/* ACTIONS */}
+
+                      <td className="px-5 py-4">
+
+                        <div className="flex justify-end gap-2">
+
+                          <button
+                            onClick={() =>
+                              openEditModal(
+                                course
+                              )
+                            }
+                            className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-100"
+                            title="Edit course"
+                          >
+                            <Pencil size={16} />
+                          </button>
+
+
+                          <button
+                            onClick={() =>
+                              handleDelete(
+                                course
+                              )
+                            }
+                            className="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50"
+                            title="Delete course"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  )
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+      )}
+
+
+      {/* MODAL */}
+
+      {showModal && (
+
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl">
+
+            {/* MODAL HEADER */}
+
+            <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
+
+              <div>
+
+                <h2 className="text-lg font-semibold text-gray-900">
+
+                  {editingCourse
+                    ? "Edit Course"
+                    : "Create Course"}
+
+                </h2>
+
+                <p className="text-sm text-gray-500">
+                  Configure the course and weekly schedule.
+                </p>
+
+              </div>
+
+
+              <button
+                onClick={closeModal}
+                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+              >
+                <X size={20} />
+              </button>
+
+            </div>
+
+
+            {/* FORM */}
 
             <form
               onSubmit={handleSubmit}
-              className="grid grid-cols-1 md:grid-cols-2 gap-5"
+              className="space-y-5 p-6"
             >
+
+              {/* MODAL ERROR */}
+
+              {error && (
+
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  {error}
+                </div>
+
+              )}
+
+
+              {/* NAME */}
+
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
+
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
                   Course Name
                 </label>
 
                 <input
-                  type="text"
                   name="name"
-                  value={formData.name}
+                  value={form.name}
                   onChange={handleChange}
-                  placeholder="e.g. Full Stack Development"
-                  required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white outline-none focus:border-indigo-500"
+                  placeholder="e.g. MERN Stack Development"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-gray-400"
                 />
+
               </div>
 
+
+              {/* LEVEL */}
+
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
+
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
                   Level
                 </label>
 
                 <select
                   name="level"
-                  value={formData.level}
+                  value={form.level}
                   onChange={handleChange}
-                  required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white outline-none focus:border-indigo-500"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none"
                 >
-                  <option value="">
-                    Select Level
-                  </option>
 
                   <option value="Beginner">
                     Beginner
@@ -418,64 +977,208 @@ const Courses = () => {
                   <option value="Advanced">
                     Advanced
                   </option>
+
                 </select>
+
               </div>
+
+
+              {/* DESCRIPTION */}
 
               <div>
-                <label className="block text-sm text-slate-300 mb-2">
-                  Start Date
-                </label>
 
-                <input
-                  type="date"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleChange}
-                  required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-slate-300 mb-2">
-                  End Date
-                </label>
-
-                <input
-                  type="date"
-                  name="endDate"
-                  value={formData.endDate}
-                  min={
-                    formData.startDate ||
-                    undefined
-                  }
-                  onChange={handleChange}
-                  required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm text-slate-300 mb-2">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
                   Description
                 </label>
 
                 <textarea
                   name="description"
-                  value={formData.description}
+                  value={form.description}
                   onChange={handleChange}
-                  placeholder="Enter course description"
-                  rows="5"
-                  required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white outline-none focus:border-indigo-500 resize-none"
+                  rows={4}
+                  placeholder="Course description..."
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-gray-400"
                 />
+
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm text-slate-300 mb-2">
-                  {editingCourse
-                    ? "Replace Course Image"
-                    : "Course Image"}
+
+              {/* INSTRUCTOR */}
+
+              <div>
+
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Instructor
+                </label>
+
+                <select
+                  name="instructor"
+                  value={form.instructor}
+                  onChange={handleChange}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none"
+                >
+
+                  <option value="">
+                    Select instructor
+                  </option>
+
+                  {instructors.map(
+                    (instructor) => (
+
+                      <option
+                        key={instructor._id}
+                        value={
+                          instructor._id
+                        }
+                      >
+                        {instructor.name}
+                        {" - "}
+                        {instructor.email}
+                      </option>
+
+                    )
+                  )}
+
+                </select>
+
+              </div>
+
+
+              {/* DATES */}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+
+                <div>
+
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Start Date
+                  </label>
+
+                  <input
+                    type="date"
+                    name="startDate"
+                    value={form.startDate}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
+                  />
+
+                </div>
+
+
+                <div>
+
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    End Date
+                  </label>
+
+                  <input
+                    type="date"
+                    name="endDate"
+                    value={form.endDate}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
+                  />
+
+                </div>
+
+              </div>
+
+
+              {/* WEEKLY DAYS */}
+
+              <div>
+
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  Weekly Days
+                </label>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+
+                  {DAYS.map((day) => {
+
+                    const selected =
+                      form.weeklyDays.includes(
+                        day
+                      );
+
+                    return (
+
+                      <button
+                        type="button"
+                        key={day}
+                        onClick={() =>
+                          toggleDay(day)
+                        }
+                        className={`rounded-lg border px-3 py-2 text-sm ${
+                          selected
+                            ? "border-gray-900 bg-gray-900 text-white"
+                            : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {day}
+                      </button>
+
+                    );
+
+                  })}
+
+                </div>
+
+              </div>
+
+
+              {/* TIME */}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+
+                <div>
+
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Start Time
+                  </label>
+
+                  <input
+                    type="time"
+                    name="startTime"
+                    value={form.startTime}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
+                  />
+
+                </div>
+
+
+                <div>
+
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    End Time
+                  </label>
+
+                  <input
+                    type="time"
+                    name="endTime"
+                    value={form.endTime}
+                    onChange={handleChange}
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm"
+                  />
+
+                </div>
+
+              </div>
+
+
+              {/* IMAGE */}
+
+              <div>
+
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+
+                  Course Image
+
+                  <span className="ml-2 font-normal text-gray-400">
+                    (Optional)
+                  </span>
+
                 </label>
 
                 <input
@@ -483,205 +1186,57 @@ const Courses = () => {
                   name="image"
                   accept="image/*"
                   onChange={handleChange}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-slate-300 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-white file:cursor-pointer"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
                 />
 
-                <p className="text-xs text-slate-500 mt-2">
-                  {editingCourse
-                    ? "Leave empty to keep the current image."
-                    : "Upload an image up to 5MB."}
+                <p className="mt-1 text-xs text-gray-400">
+                  You can create the course without uploading an image.
                 </p>
+
               </div>
 
-              {preview && (
-                <div className="md:col-span-2">
-                  <p className="text-sm text-slate-300 mb-2">
-                    Image Preview
-                  </p>
 
-                  <img
-                    src={preview}
-                    alt="Course preview"
-                    className="w-full md:w-80 h-48 object-cover rounded-lg border border-slate-700"
-                  />
-                </div>
-              )}
+              {/* BUTTONS */}
 
-              <div className="md:col-span-2 flex gap-3">
+              <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
+
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  disabled={saving}
+                  className="rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className={`px-6 py-3 rounded-lg font-medium transition ${
-                    submitting
-                      ? "bg-slate-700 text-slate-500 cursor-not-allowed"
-                      : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                  }`}
+                  disabled={saving}
+                  className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {submitting
+
+                  {saving
                     ? "Saving..."
                     : editingCourse
                     ? "Update Course"
                     : "Create Course"}
+
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    resetForm();
-                    setShowForm(false);
-                    setError("");
-                  }}
-                  className="px-6 py-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
-                >
-                  Cancel
-                </button>
               </div>
+
             </form>
+
           </div>
-        )}
 
-        <div className="mb-5">
-          <h2 className="text-xl font-semibold">
-            All Courses
-          </h2>
-
-          <p className="text-slate-400 text-sm mt-1">
-            {courses.length} course
-            {courses.length !== 1
-              ? "s"
-              : ""} available
-          </p>
         </div>
 
-        {loading ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
-            Loading courses...
-          </div>
-        ) : courses.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center">
-            <p className="text-slate-400">
-              No courses available.
-            </p>
+      )}
 
-            <button
-              onClick={() =>
-                setShowForm(true)
-              }
-              className="mt-4 bg-indigo-600 hover:bg-indigo-700 px-5 py-2.5 rounded-lg font-medium transition"
-            >
-              Add Your First Course
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {courses.map((course) => {
-              const status =
-                getCourseStatus(course);
-
-              const warning =
-                getAssignmentWarning(course);
-
-              const courseLectures =
-                getCourseLectures(
-                  course._id
-                );
-
-              return (
-                <div
-                  key={course._id}
-                  className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition"
-                >
-                  {course.image ? (
-                    <img
-                      src={course.image}
-                      alt={course.name}
-                      className="w-full h-48 object-cover rounded-lg mb-4"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-slate-800 rounded-lg mb-4 flex items-center justify-center text-slate-500">
-                      No Image
-                    </div>
-                  )}
-
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <h3 className="text-lg font-semibold">
-                      {course.name}
-                    </h3>
-
-                    <span
-                      className={`shrink-0 text-xs border px-2.5 py-1 rounded-full ${status.className}`}
-                    >
-                      {status.label}
-                    </span>
-                  </div>
-
-                  <span className="inline-block text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-full mb-4">
-                    {course.level}
-                  </span>
-
-                  <p className="text-slate-400 text-sm leading-6 mb-4">
-                    {course.description}
-                  </p>
-
-                  <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
-                    <p className="text-xs text-slate-500 mb-1">
-                      Course Duration
-                    </p>
-
-                    <p className="text-sm text-slate-200">
-                      {formatDate(
-                        course.startDate
-                      )}{" "}
-                      →{" "}
-                      {formatDate(
-                        course.endDate
-                      )}
-                    </p>
-                  </div>
-
-                  {warning && (
-                    <div
-                      className={`rounded-lg p-3 mb-4 border ${
-                        warning.type ===
-                        "danger"
-                          ? "bg-red-500/10 border-red-500/20 text-red-400"
-                          : "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"
-                      }`}
-                    >
-                      <p className="text-xs leading-5">
-                        {warning.message}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-                    <div>
-                      <p className="text-xs text-slate-500">
-                        Scheduled Lectures
-                      </p>
-
-                      <p className="text-sm font-medium text-slate-200 mt-1">
-                        {courseLectures.length}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() =>
-                        handleEdit(course)
-                      }
-                      className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-sm font-medium transition"
-                    >
-                      ✏️ Edit
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </AdminLayout>
+    </div>
   );
 };
+
 
 export default Courses;

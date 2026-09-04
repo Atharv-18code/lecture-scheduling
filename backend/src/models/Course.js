@@ -24,6 +24,7 @@ const courseSchema = new mongoose.Schema(
       trim: true
     },
 
+    // Optional
     image: {
       type: String,
       default: ""
@@ -37,6 +38,35 @@ const courseSchema = new mongoose.Schema(
     endDate: {
       type: Date,
       required: true
+    },
+
+    instructor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+
+    weeklyDays: {
+      type: [String],
+      required: true,
+      validate: {
+        validator: function (days) {
+          return Array.isArray(days) && days.length > 0;
+        },
+        message: "At least one weekly day is required"
+      }
+    },
+
+    startTime: {
+      type: String,
+      required: true,
+      match: /^([01]\d|2[0-3]):([0-5]\d)$/
+    },
+
+    endTime: {
+      type: String,
+      required: true,
+      match: /^([01]\d|2[0-3]):([0-5]\d)$/
     }
   },
   {
@@ -54,6 +84,27 @@ courseSchema.pre("validate", function (next) {
       "endDate",
       "End date cannot be before start date."
     );
+  }
+
+  if (this.startTime && this.endTime) {
+    const [startHour, startMinute] =
+      this.startTime.split(":").map(Number);
+
+    const [endHour, endMinute] =
+      this.endTime.split(":").map(Number);
+
+    const startTotal =
+      startHour * 60 + startMinute;
+
+    const endTotal =
+      endHour * 60 + endMinute;
+
+    if (startTotal >= endTotal) {
+      this.invalidate(
+        "endTime",
+        "End time must be after start time."
+      );
+    }
   }
 
   next();

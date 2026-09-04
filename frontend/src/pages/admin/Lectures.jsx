@@ -1,58 +1,37 @@
 import { useEffect, useState } from "react";
+import {
+  CalendarDays,
+  Clock,
+  User,
+  BookOpen,
+  Search,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle
+} from "lucide-react";
 import api from "../../services/api";
-import AdminLayout from "../../components/AdminLayout";
 
 const Lectures = () => {
   const [lectures, setLectures] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [instructors, setInstructors] = useState([]);
-
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingLecture, setEditingLecture] =
-    useState(null);
-
-  const [formData, setFormData] = useState({
-    title: "",
-    course: "",
-    instructor: "",
-    date: ""
-  });
-
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
 
-  const fetchData = async () => {
+  const fetchLectures = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const [
-        lecturesResponse,
-        coursesResponse,
-        instructorsResponse
-      ] = await Promise.all([
-        api.get("/lectures"),
-        api.get("/courses"),
-        api.get("/instructors")
-      ]);
+      const response = await api.get("/lectures");
 
-      setLectures(
-        lecturesResponse.data.lectures || []
-      );
+      setLectures(response.data.lectures || []);
+    } catch (err) {
+      console.error("Get lectures error:", err);
 
-      setCourses(
-        coursesResponse.data.courses || []
-      );
-
-      setInstructors(
-        instructorsResponse.data.instructors ||
-          []
-      );
-    } catch (error) {
       setError(
-        error.response?.data?.message ||
-          "Failed to load lecture scheduling data"
+        err.response?.data?.message ||
+          "Failed to load lectures"
       );
     } finally {
       setLoading(false);
@@ -60,224 +39,13 @@ const Lectures = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchLectures();
   }, []);
 
-  const handleChange = (e) => {
-    const {
-      name,
-      value
-    } = e.target;
-
-    if (name === "course") {
-      setFormData({
-        ...formData,
-        course: value,
-        date: ""
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
-
-    setError("");
-    setSuccess("");
-  };
-
-  const selectedCourse = courses.find(
-    (course) =>
-      course._id === formData.course
-  );
-
-  const getInstructorLectures = () => {
-    if (!formData.instructor) {
-      return [];
-    }
-
-    return lectures
-      .filter(
-        (lecture) =>
-          lecture.instructor?._id ===
-          formData.instructor &&
-          lecture._id !==
-            editingLecture?._id
-      )
-      .sort(
-        (a, b) =>
-          new Date(a.date) -
-          new Date(b.date)
-      );
-  };
-
-  const isDateBooked = () => {
-    if (
-      !formData.instructor ||
-      !formData.date
-    ) {
-      return false;
-    }
-
-    return lectures.some((lecture) => {
-      if (!lecture.instructor?._id) {
-        return false;
-      }
-
-      if (
-        editingLecture &&
-        lecture._id === editingLecture._id
-      ) {
-        return false;
-      }
-
-      const lectureDate =
-        new Date(lecture.date)
-          .toISOString()
-          .split("T")[0];
-
-      return (
-        lecture.instructor._id ===
-          formData.instructor &&
-        lectureDate === formData.date
-      );
-    });
-  };
-
-  const isDateOutsideCourseRange = () => {
-    if (
-      !selectedCourse ||
-      !formData.date
-    ) {
-      return false;
-    }
-
-    const selectedDate = new Date(
-      `${formData.date}T00:00:00`
-    );
-
-    const startDate = new Date(
-      selectedCourse.startDate
-    );
-
-    const endDate = new Date(
-      selectedCourse.endDate
-    );
-
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-
-    return (
-      selectedDate < startDate ||
-      selectedDate > endDate
-    );
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      setError("");
-      setSuccess("");
-
-      if (isDateOutsideCourseRange()) {
-        setError(
-          "Lecture date must be within the course start and end dates."
-        );
-        return;
-      }
-
-      if (isDateBooked()) {
-        setError(
-          "This instructor already has a lecture scheduled on this date."
-        );
-        return;
-      }
-
-      if (editingLecture) {
-        await api.put(
-          `/lectures/${editingLecture._id}`,
-          formData
-        );
-
-        setSuccess(
-          "Lecture updated successfully."
-        );
-      } else {
-        await api.post(
-          "/lectures",
-          formData
-        );
-
-        setSuccess(
-          "Lecture scheduled successfully."
-        );
-      }
-
-      resetForm();
-
-      setShowForm(false);
-
-      await fetchData();
-    } catch (error) {
-      setError(
-        error.response?.data?.message ||
-          "Failed to save lecture"
-      );
-    }
-  };
-
-  const handleEdit = (lecture) => {
-    setEditingLecture(lecture);
-
-    setFormData({
-      title: lecture.title || "",
-      course:
-        lecture.course?._id || "",
-      instructor:
-        lecture.instructor?._id || "",
-      date: lecture.date
-        ? new Date(lecture.date)
-            .toISOString()
-            .split("T")[0]
-        : ""
-    });
-
-    setShowForm(true);
-    setError("");
-    setSuccess("");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: "",
-      course: "",
-      instructor: "",
-      date: ""
-    });
-
-    setEditingLecture(null);
-  };
-
-  const handleOpenForm = () => {
-    if (showForm) {
-      resetForm();
-    }
-
-    setShowForm(!showForm);
-    setError("");
-    setSuccess("");
-  };
-
   const formatDate = (date) => {
-    return new Date(
-      date
-    ).toLocaleDateString(
+    if (!date) return "-";
+
+    return new Date(date).toLocaleDateString(
       "en-IN",
       {
         weekday: "short",
@@ -288,398 +56,405 @@ const Lectures = () => {
     );
   };
 
+  const formatTime = (time) => {
+    if (!time) return "-";
+
+    const [hour, minute] =
+      time.split(":").map(Number);
+
+    const date = new Date();
+
+    date.setHours(hour);
+    date.setMinutes(minute);
+
+    return date.toLocaleTimeString("en-IN", {
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  };
+
+  const filteredLectures = lectures.filter(
+    (lecture) => {
+      const searchValue =
+        search.toLowerCase();
+
+      const matchesSearch =
+        lecture.title
+          ?.toLowerCase()
+          .includes(searchValue) ||
+        lecture.course?.name
+          ?.toLowerCase()
+          .includes(searchValue) ||
+        lecture.instructor?.name
+          ?.toLowerCase()
+          .includes(searchValue);
+
+      const matchesFilter =
+        filter === "all" ||
+        lecture.status === filter ||
+        lecture.type === filter;
+
+      return (
+        matchesSearch && matchesFilter
+      );
+    }
+  );
+
+  const getStatusStyle = (status) => {
+    if (status === "scheduled") {
+      return "bg-green-50 text-green-700";
+    }
+
+    if (status === "pending") {
+      return "bg-yellow-50 text-yellow-700";
+    }
+
+    if (status === "rejected") {
+      return "bg-red-50 text-red-700";
+    }
+
+    return "bg-slate-100 text-slate-600";
+  };
+
+  const getStatusIcon = (status) => {
+    if (status === "scheduled") {
+      return <CheckCircle2 size={14} />;
+    }
+
+    return <AlertCircle size={14} />;
+  };
+
   return (
-    <AdminLayout>
-      <div className="p-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">
-              Lecture Scheduling
-            </h1>
+    <div className="p-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <CalendarDays size={22} />
+            </div>
 
-            <p className="text-slate-400 mt-1">
-              Schedule and manage lectures
-            </p>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">
+                Lectures
+              </h1>
+
+              <p className="text-sm text-slate-500">
+                View all scheduled course lectures
+              </p>
+            </div>
           </div>
-
-          <button
-            onClick={handleOpenForm}
-            className="bg-indigo-600 hover:bg-indigo-700 px-5 py-3 rounded-lg font-medium transition"
-          >
-            {showForm
-              ? "Close Form"
-              : "+ Schedule Lecture"}
-          </button>
         </div>
 
-        {error && (
-          <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg">
-            {error}
-          </div>
-        )}
+        <button
+          onClick={fetchLectures}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition"
+        >
+          <RefreshCw size={17} />
+          Refresh
+        </button>
+      </div>
 
-        {success && (
-          <div className="mb-6 bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-lg">
-            {success}
-          </div>
-        )}
+      {/* Error */}
+      {error && (
+        <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
-        {showForm && (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8">
-            <h2 className="text-xl font-semibold mb-6">
-              {editingLecture
-                ? "Edit Lecture"
-                : "Schedule New Lecture"}
-            </h2>
+      {/* Filters */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+          <div className="relative lg:w-96">
+            <Search
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
 
-            <form
-              onSubmit={handleSubmit}
-              className="grid grid-cols-1 md:grid-cols-2 gap-5"
-            >
-              <div>
-                <label className="block text-sm text-slate-300 mb-2">
-                  Lecture Title
-                </label>
-
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  placeholder="e.g. React Fundamentals"
-                  required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-slate-300 mb-2">
-                  Course
-                </label>
-
-                <select
-                  name="course"
-                  value={formData.course}
-                  onChange={handleChange}
-                  required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 outline-none focus:border-indigo-500"
-                >
-                  <option value="">
-                    Select Course
-                  </option>
-
-                  {courses.map(
-                    (course) => (
-                      <option
-                        key={course._id}
-                        value={course._id}
-                      >
-                        {course.name} -{" "}
-                        {course.level}
-                      </option>
-                    )
-                  )}
-                </select>
-
-                {selectedCourse && (
-                  <p className="mt-2 text-xs text-slate-400">
-                    Course period:{" "}
-                    {formatDate(
-                      selectedCourse.startDate
-                    )}{" "}
-                    →{" "}
-                    {formatDate(
-                      selectedCourse.endDate
-                    )}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm text-slate-300 mb-2">
-                  Instructor
-                </label>
-
-                <select
-                  name="instructor"
-                  value={
-                    formData.instructor
-                  }
-                  onChange={handleChange}
-                  required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 outline-none focus:border-indigo-500"
-                >
-                  <option value="">
-                    Select Instructor
-                  </option>
-
-                  {instructors.map(
-                    (instructor) => (
-                      <option
-                        key={instructor._id}
-                        value={instructor._id}
-                      >
-                        {instructor.name}
-                      </option>
-                    )
-                  )}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm text-slate-300 mb-2">
-                  Lecture Date
-                </label>
-
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  min={
-                    selectedCourse?.startDate
-                      ? new Date(
-                          selectedCourse.startDate
-                        )
-                          .toISOString()
-                          .split("T")[0]
-                      : undefined
-                  }
-                  max={
-                    selectedCourse?.endDate
-                      ? new Date(
-                          selectedCourse.endDate
-                        )
-                          .toISOString()
-                          .split("T")[0]
-                      : undefined
-                  }
-                  onChange={handleChange}
-                  disabled={!selectedCourse}
-                  required
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 outline-none focus:border-indigo-500 disabled:opacity-50"
-                />
-
-                {!selectedCourse && (
-                  <p className="mt-2 text-xs text-slate-500">
-                    Select a course first.
-                  </p>
-                )}
-
-                {selectedCourse &&
-                  formData.date &&
-                  isDateOutsideCourseRange() && (
-                    <p className="mt-2 text-sm text-red-400">
-                      Date must be within the course period.
-                    </p>
-                  )}
-
-                {formData.instructor &&
-                  formData.date &&
-                  isDateBooked() && (
-                    <p className="mt-2 text-sm text-red-400">
-                      This instructor is already assigned on this date.
-                    </p>
-                  )}
-              </div>
-
-              {formData.instructor &&
-                getInstructorLectures()
-                  .length > 0 && (
-                  <div className="md:col-span-2 bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                    <p className="text-sm font-medium text-slate-300 mb-3">
-                      Existing dates for this instructor
-                    </p>
-
-                    <div className="flex flex-wrap gap-2">
-                      {getInstructorLectures().map(
-                        (lecture) => (
-                          <span
-                            key={lecture._id}
-                            className="text-xs bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-full"
-                          >
-                            {formatDate(
-                              lecture.date
-                            )}
-                          </span>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-
-              <div className="md:col-span-2 flex gap-3">
-                <button
-                  type="submit"
-                  disabled={
-                    isDateBooked() ||
-                    isDateOutsideCourseRange() ||
-                    !selectedCourse
-                  }
-                  className={`px-6 py-3 rounded-lg font-medium transition ${
-                    isDateBooked() ||
-                    isDateOutsideCourseRange() ||
-                    !selectedCourse
-                      ? "bg-slate-700 text-slate-500 cursor-not-allowed"
-                      : "bg-indigo-600 hover:bg-indigo-700 text-white"
-                  }`}
-                >
-                  {isDateBooked()
-                    ? "Date Already Booked"
-                    : isDateOutsideCourseRange()
-                    ? "Invalid Course Date"
-                    : editingLecture
-                    ? "Update Lecture"
-                    : "Schedule Lecture"}
-                </button>
-
-                {editingLecture && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      resetForm();
-                      setShowForm(false);
-                      setError("");
-                    }}
-                    className="px-6 py-3 rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-800 transition"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-        )}
-
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-          <div className="p-6 border-b border-slate-800">
-            <h2 className="text-xl font-semibold">
-              Scheduled Lectures
-            </h2>
-
-            <p className="text-slate-400 text-sm mt-1">
-              {lectures.length} lecture
-              {lectures.length !== 1
-                ? "s"
-                : ""} scheduled
-            </p>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              placeholder="Search lectures, courses or instructors..."
+              className="w-full rounded-xl border border-slate-200 py-2.5 pl-10 pr-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            />
           </div>
 
-          {loading ? (
-            <div className="p-8 text-center text-slate-400">
-              Loading lectures...
-            </div>
-          ) : lectures.length === 0 ? (
-            <div className="p-8 text-center text-slate-400">
-              No lectures scheduled yet.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-800/50">
-                  <tr>
-                    <th className="text-left px-6 py-4 text-sm text-slate-400">
-                      Lecture
-                    </th>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: "all", label: "All" },
+              {
+                value: "scheduled",
+                label: "Scheduled"
+              },
+              {
+                value: "pending",
+                label: "Pending"
+              },
+              {
+                value: "rejected",
+                label: "Rejected"
+              },
+              {
+                value: "extra",
+                label: "Extra"
+              }
+            ].map((item) => (
+              <button
+                key={item.value}
+                onClick={() =>
+                  setFilter(item.value)
+                }
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  filter === item.value
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
-                    <th className="text-left px-6 py-4 text-sm text-slate-400">
-                      Course
-                    </th>
+      {/* Content */}
+      {loading ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-slate-500">
+          Loading lectures...
+        </div>
+      ) : filteredLectures.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center">
+          <CalendarDays
+            size={45}
+            className="mx-auto text-slate-300"
+          />
 
-                    <th className="text-left px-6 py-4 text-sm text-slate-400">
-                      Instructor
-                    </th>
+          <p className="mt-4 text-slate-500">
+            No lectures found
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          {/* Desktop table */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
+                    Course
+                  </th>
 
-                    <th className="text-left px-6 py-4 text-sm text-slate-400">
-                      Date
-                    </th>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
+                    Instructor
+                  </th>
 
-                    <th className="text-left px-6 py-4 text-sm text-slate-400">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
+                    Date
+                  </th>
 
-                <tbody>
-                  {lectures.map(
-                    (lecture) => (
-                      <tr
-                        key={lecture._id}
-                        className="border-t border-slate-800 hover:bg-slate-800/40 transition"
-                      >
-                        <td className="px-6 py-4">
-                          <p className="font-medium">
-                            {lecture.title}
-                          </p>
-                        </td>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
+                    Time
+                  </th>
 
-                        <td className="px-6 py-4">
-                          <p>
-                            {lecture.course
-                              ?.name ||
-                              "N/A"}
-                          </p>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
+                    Type
+                  </th>
 
-                          {lecture.course
-                            ?.level && (
-                            <span className="text-xs text-slate-400">
-                              {
-                                lecture
-                                  .course
-                                  .level
-                              }
-                            </span>
-                          )}
-                        </td>
+                  <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
+                    Status
+                  </th>
+                </tr>
+              </thead>
 
-                        <td className="px-6 py-4">
-                          <p>
-                            {lecture
-                              .instructor
-                              ?.name ||
-                              "N/A"}
-                          </p>
+              <tbody className="divide-y divide-slate-100">
+                {filteredLectures.map(
+                  (lecture) => (
+                    <tr
+                      key={lecture._id}
+                      className="hover:bg-slate-50 transition"
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <BookOpen
+                              size={17}
+                            />
+                          </div>
 
-                          {lecture
-                            .instructor
-                            ?.email && (
-                            <p className="text-xs text-slate-400">
-                              {
-                                lecture
-                                  .instructor
-                                  .email
-                              }
+                          <div>
+                            <p className="font-medium text-slate-900">
+                              {lecture.course
+                                ?.name ||
+                                lecture.title}
                             </p>
-                          )}
-                        </td>
 
-                        <td className="px-6 py-4 text-slate-300">
+                            {lecture.course
+                              ?.level && (
+                              <p className="text-xs text-slate-500">
+                                {
+                                  lecture.course
+                                    .level
+                                }
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <User size={15} />
+
+                          {lecture.instructor
+                            ?.name ||
+                            "Unassigned"}
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <CalendarDays
+                            size={15}
+                          />
+
                           {formatDate(
                             lecture.date
                           )}
-                        </td>
+                        </div>
+                      </td>
 
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() =>
-                              handleEdit(
-                                lecture
-                              )
-                            }
-                            className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-sm font-medium transition"
-                          >
-                            ✏️ Edit
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <Clock size={15} />
+
+                          {formatTime(
+                            lecture.startTime
+                          )}
+                          {" - "}
+                          {formatTime(
+                            lecture.endTime
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                            lecture.type ===
+                            "extra"
+                              ? "bg-purple-50 text-purple-700"
+                              : "bg-blue-50 text-blue-700"
+                          }`}
+                        >
+                          {lecture.type ===
+                          "extra"
+                            ? "Extra"
+                            : "Regular"}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(
+                            lecture.status
+                          )}`}
+                        >
+                          {getStatusIcon(
+                            lecture.status
+                          )}
+
+                          {lecture.status
+                            ?.charAt(0)
+                            .toUpperCase() +
+                            lecture.status?.slice(
+                              1
+                            )}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="lg:hidden divide-y divide-slate-100">
+            {filteredLectures.map(
+              (lecture) => (
+                <div
+                  key={lecture._id}
+                  className="p-5"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                        <BookOpen
+                          size={18}
+                        />
+                      </div>
+
+                      <div>
+                        <h3 className="font-medium text-slate-900">
+                          {lecture.course
+                            ?.name ||
+                            lecture.title}
+                        </h3>
+
+                        <p className="text-xs text-slate-500">
+                          {lecture.instructor
+                            ?.name ||
+                            "Unassigned"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusStyle(
+                        lecture.status
+                      )}`}
+                    >
+                      {getStatusIcon(
+                        lecture.status
+                      )}
+
+                      {lecture.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-sm text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays
+                        size={15}
+                      />
+
+                      {formatDate(
+                        lecture.date
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Clock size={15} />
+
+                      {formatTime(
+                        lecture.startTime
+                      )}
+                      {" - "}
+                      {formatTime(
+                        lecture.endTime
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
         </div>
-      </div>
-    </AdminLayout>
+      )}
+    </div>
   );
 };
 

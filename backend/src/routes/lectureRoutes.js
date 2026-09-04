@@ -7,11 +7,16 @@ const {
   updateLecture
 } = require("../controllers/lectureController");
 
-const protect = require("../middleware/authMiddleware");
-const authorizeRoles = require("../middleware/roleMiddleware");
+const protect =
+  require("../middleware/authMiddleware");
+
+const authorizeRoles =
+  require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
+
+// Admin manual lecture creation
 router.post(
   "/",
   protect,
@@ -19,6 +24,8 @@ router.post(
   createLecture
 );
 
+
+// Admin sees all lectures
 router.get(
   "/",
   protect,
@@ -26,6 +33,8 @@ router.get(
   getLectures
 );
 
+
+// Admin sees one lecture
 router.get(
   "/:id",
   protect,
@@ -33,6 +42,8 @@ router.get(
   getLectureById
 );
 
+
+// Admin edits lecture
 router.put(
   "/:id",
   protect,

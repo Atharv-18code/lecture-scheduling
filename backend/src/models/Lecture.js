@@ -23,6 +23,46 @@ const lectureSchema = new mongoose.Schema(
     date: {
       type: Date,
       required: true
+    },
+
+    startTime: {
+      type: String,
+      required: true,
+      match: /^([01]\d|2[0-3]):([0-5]\d)$/
+    },
+
+    endTime: {
+      type: String,
+      required: true,
+      match: /^([01]\d|2[0-3]):([0-5]\d)$/
+    },
+
+    type: {
+      type: String,
+      enum: ["regular", "extra"],
+      default: "regular"
+    },
+
+    status: {
+      type: String,
+      enum: [
+        "scheduled",
+        "pending",
+        "rejected"
+      ],
+      default: "scheduled"
+    },
+
+    requestedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null
+    },
+
+    requestReason: {
+      type: String,
+      default: "",
+      trim: true
     }
   },
   {
@@ -30,17 +70,14 @@ const lectureSchema = new mongoose.Schema(
   }
 );
 
-// Prevent an instructor from having
-// more than one lecture on the same date
-lectureSchema.index(
-  {
-    instructor: 1,
-    date: 1
-  },
-  {
-    unique: true
-  }
-);
+// Useful for finding an instructor's lectures quickly.
+// NOT unique because multiple non-overlapping lectures
+// can exist on the same day.
+lectureSchema.index({
+  instructor: 1,
+  date: 1,
+  startTime: 1
+});
 
 const Lecture =
   mongoose.models.Lecture ||

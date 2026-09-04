@@ -13,24 +13,26 @@ const upload = require("../middleware/uploadMiddleware");
 
 const router = express.Router();
 
-router.post(
-  "/",
-  protect,
-  authorizeRoles("admin"),
-  upload.single("image"),
-  createCourse
-);
-
 router.get(
   "/",
   protect,
+  authorizeRoles("admin"),
   getCourses
 );
 
 router.get(
   "/:id",
   protect,
+  authorizeRoles("admin"),
   getCourseById
+);
+
+router.post(
+  "/",
+  protect,
+  authorizeRoles("admin"),
+  upload.single("image"),
+  createCourse
 );
 
 router.put(

@@ -7,6 +7,8 @@ const authRoutes = require("./routes/authRoutes");
 const courseRoutes = require("./routes/courseRoutes");
 const instructorRoutes = require("./routes/instructorRoutes");
 const lectureRoutes = require("./routes/lectureRoutes");
+const extraLectureRoutes = require("./routes/extraLectureRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const protect = require("./middleware/authMiddleware");
 const authorizeRoles = require("./middleware/roleMiddleware");
@@ -23,6 +25,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/instructors", instructorRoutes);
 app.use("/api/lectures", lectureRoutes);
+app.use("/api/extra-lectures", extraLectureRoutes);
+app.use("/api/notifications", require("./routes/notificationRoutes"));
 
 app.get(
   "/api/test/admin",

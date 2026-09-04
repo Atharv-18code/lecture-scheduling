@@ -1,268 +1,290 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-
+import {
+  Users,
+  BookOpen,
+  CalendarDays,
+  Clock,
+  Bell,
+  ArrowRight,
+  CheckCircle2
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import api from "../../services/api";
-import AdminLayout from "../../components/AdminLayout";
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
-
   const [stats, setStats] = useState({
     instructors: 0,
     courses: 0,
     lectures: 0,
-    upcomingLectures: 0
+    upcoming: 0
   });
 
+  const [lectures, setLectures] = useState([]);
+  const [unreadNotifications, setUnreadNotifications] =
+    useState(0);
+
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  const fetchDashboardStats = async () => {
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
     try {
-      setLoading(true);
-      setError("");
-
       const [
         instructorsResponse,
         coursesResponse,
-        lecturesResponse
+        lecturesResponse,
+        notificationsResponse
       ] = await Promise.all([
         api.get("/instructors"),
         api.get("/courses"),
-        api.get("/lectures")
+        api.get("/lectures"),
+        api.get("/notifications")
       ]);
 
-      const lectures = lecturesResponse.data.lectures || [];
+      const instructors =
+        instructorsResponse.data.instructors || [];
+
+      const courses =
+        coursesResponse.data.courses || [];
+
+      const allLectures =
+        lecturesResponse.data.lectures || [];
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const upcomingLectures = lectures.filter(
-        (lecture) => new Date(lecture.date) >= today
+      const upcomingLectures = allLectures.filter(
+        (lecture) =>
+          new Date(lecture.date) >= today &&
+          lecture.status === "scheduled"
       );
 
       setStats({
-        instructors:
-          instructorsResponse.data.count || 0,
-
-        courses:
-          coursesResponse.data.count || 0,
-
-        lectures:
-          lecturesResponse.data.count || 0,
-
-        upcomingLectures:
-          upcomingLectures.length
+        instructors: instructors.length,
+        courses: courses.length,
+        lectures: allLectures.length,
+        upcoming: upcomingLectures.length
       });
 
-    } catch (error) {
-      console.error("Dashboard stats error:", error);
+      setLectures(
+        upcomingLectures.slice(0, 5)
+      );
 
-      setError(
-        error.response?.data?.message ||
-          "Failed to load dashboard statistics"
+      setUnreadNotifications(
+        notificationsResponse.data.unreadCount || 0
+      );
+    } catch (error) {
+      console.error(
+        "Dashboard error:",
+        error
       );
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString(
+      "en-US",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      }
+    );
+  };
+
+  const formatTime = (time) => {
+    if (!time) return "";
+
+    const [hour, minute] =
+      time.split(":").map(Number);
+
+    const date = new Date();
+
+    date.setHours(hour);
+    date.setMinutes(minute);
+
+    return date.toLocaleTimeString(
+      "en-US",
+      {
+        hour: "numeric",
+        minute: "2-digit"
+      }
+    );
+  };
 
   const statCards = [
     {
       title: "Total Instructors",
       value: stats.instructors,
-      icon: "👨‍🏫",
-      description: "Registered instructors",
-      path: "/admin/instructors"
+      icon: Users,
+      link: "/admin/instructors"
     },
     {
       title: "Total Courses",
       value: stats.courses,
-      icon: "📚",
-      description: "Available courses",
-      path: "/admin/courses"
+      icon: BookOpen,
+      link: "/admin/courses"
     },
     {
       title: "Scheduled Lectures",
       value: stats.lectures,
-      icon: "📅",
-      description: "All scheduled lectures",
-      path: "/admin/lectures"
+      icon: CalendarDays,
+      link: "/admin/lectures"
     },
     {
       title: "Upcoming Lectures",
-      value: stats.upcomingLectures,
-      icon: "⏰",
-      description: "Future lectures",
-      path: "/admin/lectures"
+      value: stats.upcoming,
+      icon: Clock,
+      link: "/admin/lectures"
     }
   ];
 
   return (
-    <AdminLayout>
-
-      {/* Header */}
-      <header className="h-20 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-8">
-
+    <div className="p-8">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-xl font-semibold">
+          <h1 className="text-2xl font-bold text-slate-900">
             Dashboard
-          </h2>
-
-          <p className="text-sm text-slate-400">
-            Overview of your lecture scheduling system
-          </p>
-        </div>
-
-        <button
-          onClick={fetchDashboardStats}
-          className="border border-slate-700 hover:bg-slate-800 px-4 py-2 rounded-lg text-sm transition"
-        >
-          Refresh
-        </button>
-
-      </header>
-
-      {/* Content */}
-      <div className="p-8">
-
-        {error && (
-          <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg">
-            {error}
-          </div>
-        )}
-
-        {/* Welcome */}
-        <div className="mb-8">
-
-          <h1 className="text-3xl font-bold">
-            Dashboard Overview
           </h1>
 
-          <p className="text-slate-400 mt-2">
-            Monitor instructors, courses and lecture schedules.
+          <p className="text-slate-500 mt-1">
+            Manage courses, instructors and lecture schedules.
           </p>
-
         </div>
 
-        {/* Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        <Link
+          to="/admin/notifications"
+          className="relative flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-xl hover:bg-slate-50 transition"
+        >
+          <Bell size={18} />
 
-          {statCards.map((stat) => (
-            <button
-              key={stat.title}
-              onClick={() => navigate(stat.path)}
-              className="text-left bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-indigo-500/50 hover:bg-slate-900/80 transition"
-            >
+          <span>Notifications</span>
 
-              <div className="flex items-center justify-between">
-
-                <div className="w-11 h-11 bg-indigo-500/10 rounded-lg flex items-center justify-center text-xl">
-                  {stat.icon}
-                </div>
-
-                <span className="text-slate-600">
-                  →
-                </span>
-
-              </div>
-
-              <p className="text-slate-400 text-sm mt-5">
-                {stat.title}
-              </p>
-
-              <p className="text-3xl font-bold mt-1">
-
-                {loading ? (
-                  <span className="text-slate-600">
-                    ...
-                  </span>
-                ) : (
-                  stat.value
-                )}
-
-              </p>
-
-              <p className="text-xs text-slate-500 mt-2">
-                {stat.description}
-              </p>
-
-            </button>
-          ))}
-
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-10">
-
-          <h2 className="text-xl font-semibold mb-5">
-            Quick Actions
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-
-            <button
-              onClick={() => navigate("/admin/instructors")}
-              className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-6 text-left transition"
-            >
-              <div className="text-2xl mb-4">
-                👨‍🏫
-              </div>
-
-              <h3 className="font-semibold">
-                Manage Instructors
-              </h3>
-
-              <p className="text-sm text-slate-400 mt-2">
-                Add and view instructors.
-              </p>
-            </button>
-
-            <button
-              onClick={() => navigate("/admin/courses")}
-              className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-6 text-left transition"
-            >
-              <div className="text-2xl mb-4">
-                📚
-              </div>
-
-              <h3 className="font-semibold">
-                Manage Courses
-              </h3>
-
-              <p className="text-sm text-slate-400 mt-2">
-                Create and view courses.
-              </p>
-            </button>
-
-            <button
-              onClick={() => navigate("/admin/lectures")}
-              className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-xl p-6 text-left transition"
-            >
-              <div className="text-2xl mb-4">
-                📅
-              </div>
-
-              <h3 className="font-semibold">
-                Schedule Lecture
-              </h3>
-
-              <p className="text-sm text-slate-400 mt-2">
-                Assign courses to instructors.
-              </p>
-            </button>
-
-          </div>
-
-        </div>
-
+          {unreadNotifications > 0 && (
+            <span className="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+              {unreadNotifications}
+            </span>
+          )}
+        </Link>
       </div>
 
-    </AdminLayout>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
+        {statCards.map((card) => {
+          const Icon = card.icon;
+
+          return (
+            <Link
+              key={card.title}
+              to={card.link}
+              className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">
+                    {card.title}
+                  </p>
+
+                  <p className="text-3xl font-bold text-slate-900 mt-2">
+                    {loading ? "—" : card.value}
+                  </p>
+                </div>
+
+                <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Icon size={21} />
+                </div>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200">
+        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-slate-900">
+              Upcoming Lectures
+            </h2>
+
+            <p className="text-sm text-slate-500 mt-1">
+              Next scheduled lectures
+            </p>
+          </div>
+
+          <Link
+            to="/admin/lectures"
+            className="flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-700"
+          >
+            View all
+            <ArrowRight size={15} />
+          </Link>
+        </div>
+
+        {lectures.length === 0 ? (
+          <div className="p-10 text-center">
+            <CalendarDays
+              size={40}
+              className="mx-auto text-slate-300"
+            />
+
+            <p className="mt-3 text-slate-500">
+              No upcoming lectures
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {lectures.map((lecture) => (
+              <div
+                key={lecture._id}
+                className="p-5 flex items-center justify-between gap-5"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <BookOpen size={20} />
+                  </div>
+
+                  <div>
+                    <h3 className="font-medium text-slate-900">
+                      {lecture.course?.name ||
+                        lecture.title}
+                    </h3>
+
+                    <p className="text-sm text-slate-500">
+                      {lecture.instructor?.name ||
+                        "Unassigned"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-sm font-medium text-slate-900">
+                    {formatDate(lecture.date)}
+                  </p>
+
+                  <p className="text-sm text-slate-500">
+                    {formatTime(
+                      lecture.startTime
+                    )}{" "}
+                    -{" "}
+                    {formatTime(
+                      lecture.endTime
+                    )}
+                  </p>
+                </div>
+
+                <div className="hidden lg:flex items-center gap-1.5 text-xs text-green-700 bg-green-50 px-3 py-1.5 rounded-full">
+                  <CheckCircle2 size={14} />
+                  Scheduled
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

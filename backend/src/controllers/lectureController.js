@@ -14,12 +14,42 @@ const normalizeDate = (date) => {
   return normalizedDate;
 };
 
-const validateLectureData = async (
+const isValidTime = (time) => {
+  return /^([01]\d|2[0-3]):([0-5]\d)$/.test(
+    time
+  );
+};
+
+const timeToMinutes = (time) => {
+  const [hours, minutes] = time
+    .split(":")
+    .map(Number);
+
+  return hours * 60 + minutes;
+};
+
+const hasTimeConflict = (
+  startTime,
+  endTime,
+  existingStart,
+  existingEnd
+) => {
+  return (
+    timeToMinutes(startTime) <
+      timeToMinutes(existingEnd) &&
+    timeToMinutes(endTime) >
+      timeToMinutes(existingStart)
+  );
+};
+
+const validateLecture = async ({
   course,
   instructor,
   date,
+  startTime,
+  endTime,
   currentLectureId = null
-) => {
+}) => {
   const existingCourse =
     await Course.findById(course);
 
@@ -41,7 +71,8 @@ const validateLectureData = async (
     };
   }
 
-  const lectureDate = normalizeDate(date);
+  const lectureDate =
+    normalizeDate(date);
 
   if (!lectureDate) {
     return {
@@ -49,13 +80,34 @@ const validateLectureData = async (
     };
   }
 
-  const courseStartDate = normalizeDate(
-    existingCourse.startDate
-  );
+  if (
+    !isValidTime(startTime) ||
+    !isValidTime(endTime)
+  ) {
+    return {
+      error: "Invalid lecture time"
+    };
+  }
 
-  const courseEndDate = normalizeDate(
-    existingCourse.endDate
-  );
+  if (
+    timeToMinutes(endTime) <=
+    timeToMinutes(startTime)
+  ) {
+    return {
+      error:
+        "End time must be after start time"
+    };
+  }
+
+  const courseStartDate =
+    normalizeDate(
+      existingCourse.startDate
+    );
+
+  const courseEndDate =
+    normalizeDate(
+      existingCourse.endDate
+    );
 
   if (
     lectureDate < courseStartDate ||
@@ -69,7 +121,8 @@ const validateLectureData = async (
 
   const query = {
     instructor,
-    date: lectureDate
+    date: lectureDate,
+    status: "scheduled"
   };
 
   if (currentLectureId) {
@@ -78,13 +131,24 @@ const validateLectureData = async (
     };
   }
 
-  const existingLecture =
-    await Lecture.findOne(query);
+  const existingLectures =
+    await Lecture.find(query);
 
-  if (existingLecture) {
+  const conflict =
+    existingLectures.find(
+      (lecture) =>
+        hasTimeConflict(
+          startTime,
+          endTime,
+          lecture.startTime,
+          lecture.endTime
+        )
+    );
+
+  if (conflict) {
     return {
       error:
-        "This instructor already has a lecture scheduled on this date."
+        `Instructor already has a lecture from ${conflict.startTime} to ${conflict.endTime} on this date.`
     };
   }
 
@@ -95,48 +159,62 @@ const validateLectureData = async (
   };
 };
 
-const createLecture = async (req, res) => {
+const createLecture = async (
+  req,
+  res
+) => {
   try {
     const {
       title,
       course,
       instructor,
-      date
+      date,
+      startTime,
+      endTime
     } = req.body;
 
     if (
       !title ||
       !course ||
       !instructor ||
-      !date
+      !date ||
+      !startTime ||
+      !endTime
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Title, course, instructor and date are required"
+          "Title, course, instructor, date, start time and end time are required"
       });
     }
 
     const validation =
-      await validateLectureData(
+      await validateLecture({
         course,
         instructor,
-        date
-      );
+        date,
+        startTime,
+        endTime
+      });
 
     if (validation.error) {
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
         message: validation.error
       });
     }
 
-    const lecture = await Lecture.create({
-      title: title.trim(),
-      course,
-      instructor,
-      date: validation.lectureDate
-    });
+    const lecture =
+      await Lecture.create({
+        title: title.trim(),
+        course,
+        instructor,
+        date: validation.lectureDate,
+        startTime,
+        endTime,
+        type: "regular",
+        status: "scheduled"
+      });
 
     const populatedLecture =
       await Lecture.findById(
@@ -163,14 +241,6 @@ const createLecture = async (req, res) => {
       error
     );
 
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "This instructor already has a lecture scheduled on this date."
-      });
-    }
-
     res.status(500).json({
       success: false,
       message: "Server error"
@@ -178,20 +248,25 @@ const createLecture = async (req, res) => {
   }
 };
 
-const getLectures = async (req, res) => {
+const getLectures = async (
+  req,
+  res
+) => {
   try {
-    const lectures = await Lecture.find()
-      .populate(
-        "course",
-        "name level startDate endDate"
-      )
-      .populate(
-        "instructor",
-        "name email"
-      )
-      .sort({
-        date: 1
-      });
+    const lectures =
+      await Lecture.find()
+        .populate(
+          "course",
+          "name level startDate endDate"
+        )
+        .populate(
+          "instructor",
+          "name email"
+        )
+        .sort({
+          date: 1,
+          startTime: 1
+        });
 
     res.status(200).json({
       success: true,
@@ -211,7 +286,10 @@ const getLectures = async (req, res) => {
   }
 };
 
-const getLectureById = async (req, res) => {
+const getLectureById = async (
+  req,
+  res
+) => {
   try {
     const lecture =
       await Lecture.findById(
@@ -250,25 +328,32 @@ const getLectureById = async (req, res) => {
   }
 };
 
-const updateLecture = async (req, res) => {
+const updateLecture = async (
+  req,
+  res
+) => {
   try {
     const {
       title,
       course,
       instructor,
-      date
+      date,
+      startTime,
+      endTime
     } = req.body;
 
     if (
       !title ||
       !course ||
       !instructor ||
-      !date
+      !date ||
+      !startTime ||
+      !endTime
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Title, course, instructor and date are required"
+          "Title, course, instructor, date, start time and end time are required"
       });
     }
 
@@ -285,24 +370,32 @@ const updateLecture = async (req, res) => {
     }
 
     const validation =
-      await validateLectureData(
+      await validateLecture({
         course,
         instructor,
         date,
-        req.params.id
-      );
+        startTime,
+        endTime,
+        currentLectureId:
+          req.params.id
+      });
 
     if (validation.error) {
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
         message: validation.error
       });
     }
 
-    lecture.title = title.trim();
+    lecture.title =
+      title.trim();
+
     lecture.course = course;
     lecture.instructor = instructor;
-    lecture.date = validation.lectureDate;
+    lecture.date =
+      validation.lectureDate;
+    lecture.startTime = startTime;
+    lecture.endTime = endTime;
 
     await lecture.save();
 
@@ -330,14 +423,6 @@ const updateLecture = async (req, res) => {
       "Update lecture error:",
       error
     );
-
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "This instructor already has a lecture scheduled on this date."
-      });
-    }
 
     res.status(500).json({
       success: false,
