@@ -2,13 +2,13 @@ const ExtraLectureRequest =
   require("../models/ExtraLectureRequest");
 
 const Lecture =
-  require("../models/lecture");
+  require("../models/Lecture");
 
 const Course =
-  require("../models/course");
+  require("../models/Course");
 
 const User =
-  require("../models/user");
+  require("../models/User");
 
 const normalizeDate = (date) => {
   const normalizedDate = new Date(date);

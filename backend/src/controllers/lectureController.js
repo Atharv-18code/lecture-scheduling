@@ -1,6 +1,6 @@
-const Lecture = require("../models/lecture");
-const Course = require("../models/course");
-const User = require("../models/user");
+const Lecture = require("../models/Lecture");
+const Course = require("../models/Course");
+const User = require("../models/User");
 
 const normalizeDate = (date) => {
   const normalizedDate = new Date(date);

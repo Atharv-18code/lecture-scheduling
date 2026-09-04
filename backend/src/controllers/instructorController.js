@@ -1,6 +1,6 @@
 const bcrypt = require("bcryptjs");
-const User = require("../models/user");
-const Lecture = require("../models/lecture");
+const User = require("../models/User");
+const Lecture = require("../models/Lecture");
 
 
 const createInstructor = async (req, res) => {
