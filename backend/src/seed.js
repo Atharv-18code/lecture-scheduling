@@ -14,11 +14,9 @@ const seedUsers = async () => {
     console.log("MongoDB connected");
 
 
-    // Remove existing users
     await User.deleteMany({});
 
 
-    // Hash passwords
     const adminPassword = await bcrypt.hash(
       "Admin@123",
       10
@@ -30,7 +28,6 @@ const seedUsers = async () => {
     );
 
 
-    // Create users
     await User.create([
       {
         name: "Admin User",

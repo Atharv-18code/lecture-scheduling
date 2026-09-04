@@ -24,7 +24,6 @@ const courseSchema = new mongoose.Schema(
       trim: true
     },
 
-    // Optional
     image: {
       type: String,
       default: ""

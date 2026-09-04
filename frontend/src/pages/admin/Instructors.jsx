@@ -110,7 +110,6 @@ const Instructors = () => {
 
   return (
     <div className="p-8">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-3">
@@ -139,7 +138,6 @@ const Instructors = () => {
         </button>
       </div>
 
-      {/* Messages */}
       {error && (
         <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -153,7 +151,6 @@ const Instructors = () => {
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Add Instructor */}
         <div className="bg-white border border-slate-200 rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -255,7 +252,6 @@ const Instructors = () => {
           </form>
         </div>
 
-        {/* Instructor List */}
         <div className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl">
           <div className="p-6 border-b border-slate-200">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

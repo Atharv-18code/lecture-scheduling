@@ -12,7 +12,6 @@ const authorizeRoles = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
-// Instructor's own lectures
 router.get(
   "/me/lectures",
   protect,
@@ -20,7 +19,6 @@ router.get(
   getMyLectures
 );
 
-// Admin creates instructor
 router.post(
   "/",
   protect,
@@ -28,7 +26,6 @@ router.post(
   createInstructor
 );
 
-// Admin gets all instructors
 router.get(
   "/",
   protect,
@@ -36,7 +33,6 @@ router.get(
   getInstructors
 );
 
-// Admin gets instructor by ID
 router.get(
   "/:id",
   protect,

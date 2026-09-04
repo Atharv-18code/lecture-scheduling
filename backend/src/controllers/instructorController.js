@@ -56,7 +56,6 @@ const createInstructor = async (req, res) => {
   }
 };
 
-// Get all instructors
 const getInstructors = async (req, res) => {
   try {
     const instructors = await User.find({
@@ -82,7 +81,6 @@ const getInstructors = async (req, res) => {
 };
 
 
-// Get single instructor
 const getInstructorById = async (req, res) => {
   try {
     const instructor = await User.findOne({

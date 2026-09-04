@@ -17,11 +17,7 @@ const authorizeRoles =
 const router = express.Router();
 
 
-// ======================================
-// INSTRUCTOR
-// ======================================
 
-// Request extra lecture
 router.post(
   "/",
   protect,
@@ -30,7 +26,6 @@ router.post(
 );
 
 
-// Instructor sees own requests
 router.get(
   "/my",
   protect,
@@ -39,11 +34,7 @@ router.get(
 );
 
 
-// ======================================
-// ADMIN
-// ======================================
 
-// Admin sees all requests
 router.get(
   "/",
   protect,
@@ -52,7 +43,6 @@ router.get(
 );
 
 
-// Admin approves
 router.put(
   "/:id/approve",
   protect,
@@ -61,7 +51,6 @@ router.put(
 );
 
 
-// Admin rejects
 router.put(
   "/:id/reject",
   protect,

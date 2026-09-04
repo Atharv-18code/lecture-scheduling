@@ -79,9 +79,6 @@ const Courses = () => {
     useState("");
 
 
-  // ------------------------------------------------
-  // FETCH DATA
-  // ------------------------------------------------
 
   const fetchData = async () => {
 
@@ -222,9 +219,6 @@ const Courses = () => {
   ]);
 
 
-  // ------------------------------------------------
-  // OPEN CREATE
-  // ------------------------------------------------
 
   const openCreateModal = () => {
 
@@ -241,9 +235,6 @@ const Courses = () => {
   };
 
 
-  // ------------------------------------------------
-  // OPEN EDIT
-  // ------------------------------------------------
 
   const openEditModal = (course) => {
 
@@ -294,9 +285,6 @@ const Courses = () => {
   };
 
 
-  // ------------------------------------------------
-  // CLOSE MODAL
-  // ------------------------------------------------
 
   const closeModal = () => {
 
@@ -317,9 +305,6 @@ const Courses = () => {
   };
 
 
-  // ------------------------------------------------
-  // HANDLE INPUT
-  // ------------------------------------------------
 
   const handleChange = (e) => {
 
@@ -347,9 +332,6 @@ const Courses = () => {
   };
 
 
-  // ------------------------------------------------
-  // HANDLE WEEKLY DAY
-  // ------------------------------------------------
 
   const toggleDay = (day) => {
 
@@ -374,9 +356,6 @@ const Courses = () => {
   };
 
 
-  // ------------------------------------------------
-  // VALIDATION
-  // ------------------------------------------------
 
   const validateForm = () => {
 
@@ -420,9 +399,6 @@ const Courses = () => {
   };
 
 
-  // ------------------------------------------------
-  // SAVE COURSE
-  // ------------------------------------------------
 
   const handleSubmit = async (e) => {
 
@@ -497,9 +473,6 @@ const Courses = () => {
       );
 
 
-      // --------------------------------
-      // IMAGE IS OPTIONAL
-      // --------------------------------
 
       if (form.image) {
 
@@ -510,9 +483,6 @@ const Courses = () => {
       }
 
 
-      // --------------------------------
-      // CREATE / UPDATE
-      // --------------------------------
 
       if (editingCourse) {
 
@@ -530,9 +500,6 @@ const Courses = () => {
       }
 
 
-      // --------------------------------
-      // REFRESH
-      // --------------------------------
 
       await fetchData();
 
@@ -557,9 +524,6 @@ const Courses = () => {
   };
 
 
-  // ------------------------------------------------
-  // DELETE COURSE
-  // ------------------------------------------------
 
   const handleDelete = async (course) => {
 
@@ -596,9 +560,6 @@ const Courses = () => {
   };
 
 
-  // ------------------------------------------------
-  // FILTER
-  // ------------------------------------------------
 
   const filteredCourses =
     courses.filter((course) => {
@@ -622,9 +583,6 @@ const Courses = () => {
     });
 
 
-  // ------------------------------------------------
-  // FORMAT DATE
-  // ------------------------------------------------
 
   const formatDate = (date) => {
 
@@ -644,14 +602,10 @@ const Courses = () => {
   };
 
 
-  // ------------------------------------------------
-  // UI
-  // ------------------------------------------------
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
 
-      {/* HEADER */}
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
@@ -678,7 +632,6 @@ const Courses = () => {
       </div>
 
 
-      {/* SEARCH */}
 
       <div className="mb-6">
 
@@ -704,7 +657,6 @@ const Courses = () => {
       </div>
 
 
-      {/* ERROR */}
 
       {error && !showModal && (
 
@@ -715,7 +667,6 @@ const Courses = () => {
       )}
 
 
-      {/* LOADING */}
 
       {loading ? (
 
@@ -789,7 +740,6 @@ const Courses = () => {
                       className="hover:bg-gray-50"
                     >
 
-                      {/* COURSE */}
 
                       <td className="px-5 py-4">
 
@@ -834,7 +784,6 @@ const Courses = () => {
                       </td>
 
 
-                      {/* INSTRUCTOR */}
 
                       <td className="px-5 py-4">
 
@@ -864,7 +813,6 @@ const Courses = () => {
                       </td>
 
 
-                      {/* SCHEDULE */}
 
                       <td className="px-5 py-4">
 
@@ -903,7 +851,6 @@ const Courses = () => {
                       </td>
 
 
-                      {/* DURATION */}
 
                       <td className="px-5 py-4">
 
@@ -928,7 +875,6 @@ const Courses = () => {
                       </td>
 
 
-                      {/* ACTIONS */}
 
                       <td className="px-5 py-4">
 
@@ -979,7 +925,6 @@ const Courses = () => {
       )}
 
 
-      {/* MODAL */}
 
       {showModal && (
 
@@ -987,7 +932,6 @@ const Courses = () => {
 
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-xl">
 
-            {/* MODAL HEADER */}
 
             <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
 
@@ -1018,14 +962,12 @@ const Courses = () => {
             </div>
 
 
-            {/* FORM */}
 
             <form
               onSubmit={handleSubmit}
               className="space-y-5 p-6"
             >
 
-              {/* MODAL ERROR */}
 
               {error && (
 
@@ -1066,7 +1008,6 @@ const Courses = () => {
               )}
 
 
-              {/* NAME */}
 
               <div>
 
@@ -1085,7 +1026,6 @@ const Courses = () => {
               </div>
 
 
-              {/* LEVEL */}
 
               <div>
 
@@ -1117,7 +1057,6 @@ const Courses = () => {
               </div>
 
 
-              {/* DESCRIPTION */}
 
               <div>
 
@@ -1137,7 +1076,6 @@ const Courses = () => {
               </div>
 
 
-              {/* INSTRUCTOR */}
 
               <div>
 
@@ -1178,7 +1116,6 @@ const Courses = () => {
               </div>
 
 
-              {/* DATES */}
 
               <div className="grid gap-4 sm:grid-cols-2">
 
@@ -1218,7 +1155,6 @@ const Courses = () => {
               </div>
 
 
-              {/* WEEKLY DAYS */}
 
               <div>
 
@@ -1261,7 +1197,6 @@ const Courses = () => {
               </div>
 
 
-              {/* TIME */}
 
               <div className="grid gap-4 sm:grid-cols-2">
 
@@ -1301,7 +1236,6 @@ const Courses = () => {
               </div>
 
 
-              {/* IMAGE */}
 
               <div>
 
@@ -1330,7 +1264,6 @@ const Courses = () => {
               </div>
 
 
-              {/* BUTTONS */}
 
               <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
 

@@ -3,12 +3,10 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
 
-// Login User
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -16,7 +14,6 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Find user
     const user = await User.findOne({
       email: email.toLowerCase()
     });
@@ -28,7 +25,6 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Compare password
     const isPasswordCorrect = await bcrypt.compare(
       password,
       user.password
@@ -41,7 +37,6 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Generate JWT
     const token = jwt.sign(
       {
         id: user._id,

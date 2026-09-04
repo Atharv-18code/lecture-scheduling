@@ -16,7 +16,6 @@ const authorizeRoles =
 const router = express.Router();
 
 
-// Admin manual lecture creation
 router.post(
   "/",
   protect,
@@ -25,7 +24,6 @@ router.post(
 );
 
 
-// Admin sees all lectures
 router.get(
   "/",
   protect,
@@ -34,7 +32,6 @@ router.get(
 );
 
 
-// Admin sees one lecture
 router.get(
   "/:id",
   protect,
@@ -43,7 +40,6 @@ router.get(
 );
 
 
-// Admin edits lecture
 router.put(
   "/:id",
   protect,

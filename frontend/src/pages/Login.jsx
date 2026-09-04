@@ -53,7 +53,6 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Email
@@ -71,7 +70,6 @@ const Login = () => {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Password
@@ -89,14 +87,12 @@ const Login = () => {
               />
             </div>
 
-            {/* Error */}
             {error && (
               <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-4 py-3 text-sm">
                 {error}
               </div>
             )}
 
-            {/* Button */}
             <button
               type="submit"
               disabled={loading}

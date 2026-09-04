@@ -5,9 +5,6 @@ const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 
 
-// --------------------------------------------------
-// HELPERS
-// --------------------------------------------------
 
 const normalizeDate = (date) => {
   const d = new Date(date);
@@ -83,9 +80,6 @@ const generateScheduleDates = (
 };
 
 
-// --------------------------------------------------
-// CLOUDINARY UPLOAD
-// --------------------------------------------------
 
 const uploadToCloudinary = (fileBuffer) => {
   return new Promise((resolve, reject) => {
@@ -110,9 +104,6 @@ const uploadToCloudinary = (fileBuffer) => {
 };
 
 
-// --------------------------------------------------
-// CHECK INSTRUCTOR CONFLICT
-// --------------------------------------------------
 
 const checkInstructorConflict = async ({
   instructor,
@@ -155,9 +146,6 @@ const checkInstructorConflict = async ({
 };
 
 
-// --------------------------------------------------
-// CREATE COURSE
-// --------------------------------------------------
 
 const createCourse = async (req, res) => {
   try {
@@ -172,14 +160,10 @@ const createCourse = async (req, res) => {
       instructor
     } = req.body;
 
-    // Support both names temporarily
     let weeklyDays =
       req.body.weeklyDays ??
       req.body.scheduleDays;
 
-    // ------------------------------
-    // REQUIRED VALIDATION
-    // ------------------------------
 
     if (
       !name ||
@@ -199,9 +183,6 @@ const createCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // WEEKLY DAYS
-    // ------------------------------
 
     if (typeof weeklyDays === "string") {
       try {
@@ -225,9 +206,6 @@ const createCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // DATE VALIDATION
-    // ------------------------------
 
     const normalizedStartDate =
       normalizeDate(startDate);
@@ -254,9 +232,6 @@ const createCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // TIME VALIDATION
-    // ------------------------------
 
     if (
       !isValidTime(startTime) ||
@@ -281,9 +256,6 @@ const createCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // CHECK INSTRUCTOR
-    // ------------------------------
 
     const instructorUser =
       await User.findOne({
@@ -299,9 +271,6 @@ const createCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // GENERATE DATES
-    // ------------------------------
 
     const scheduleDates =
       generateScheduleDates(
@@ -319,9 +288,6 @@ const createCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // CHECK CONFLICTS
-    // ------------------------------
 
     for (const date of scheduleDates) {
       const conflict =
@@ -342,9 +308,6 @@ const createCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // OPTIONAL IMAGE
-    // ------------------------------
 
     let imageUrl = "";
 
@@ -363,9 +326,6 @@ const createCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // CREATE COURSE
-    // ------------------------------
 
     const course =
       await Course.create({
@@ -382,9 +342,6 @@ const createCourse = async (req, res) => {
       });
 
 
-    // ------------------------------
-    // CREATE LECTURES
-    // ------------------------------
 
     const lectures =
       scheduleDates.map((date) => ({
@@ -445,9 +402,6 @@ const createCourse = async (req, res) => {
 };
 
 
-// --------------------------------------------------
-// GET ALL COURSES
-// --------------------------------------------------
 
 const getCourses = async (req, res) => {
   try {
@@ -482,9 +436,6 @@ const getCourses = async (req, res) => {
 };
 
 
-// --------------------------------------------------
-// GET COURSE BY ID
-// --------------------------------------------------
 
 const getCourseById = async (req, res) => {
   try {
@@ -524,9 +475,6 @@ const getCourseById = async (req, res) => {
 };
 
 
-// --------------------------------------------------
-// UPDATE COURSE
-// --------------------------------------------------
 
 const updateCourse = async (req, res) => {
   try {
@@ -556,15 +504,11 @@ const updateCourse = async (req, res) => {
     } = req.body;
 
 
-    // Support both names
     let weeklyDays =
       req.body.weeklyDays ??
       req.body.scheduleDays;
 
 
-    // ------------------------------
-    // USE EXISTING VALUES IF MISSING
-    // ------------------------------
 
     const finalName =
       name !== undefined
@@ -607,9 +551,6 @@ const updateCourse = async (req, res) => {
         : course.instructor;
 
 
-    // ------------------------------
-    // WEEKLY DAYS
-    // ------------------------------
 
     if (weeklyDays === undefined) {
       weeklyDays = course.weeklyDays;
@@ -639,9 +580,6 @@ const updateCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // DATE VALIDATION
-    // ------------------------------
 
     if (
       !finalStartDate ||
@@ -665,9 +603,6 @@ const updateCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // TIME VALIDATION
-    // ------------------------------
 
     if (
       !isValidTime(finalStartTime) ||
@@ -692,9 +627,6 @@ const updateCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // CHECK INSTRUCTOR
-    // ------------------------------
 
     const instructorUser =
       await User.findOne({
@@ -710,9 +642,6 @@ const updateCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // GENERATE NEW DATES
-    // ------------------------------
 
     const scheduleDates =
       generateScheduleDates(
@@ -731,9 +660,6 @@ const updateCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // CHECK CONFLICTS
-    // ------------------------------
 
     for (const date of scheduleDates) {
 
@@ -758,9 +684,6 @@ const updateCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // OPTIONAL IMAGE
-    // ------------------------------
 
     let imageUrl = course.image || "";
 
@@ -772,9 +695,6 @@ const updateCourse = async (req, res) => {
     }
 
 
-    // ------------------------------
-    // UPDATE COURSE
-    // ------------------------------
 
     course.name = finalName;
     course.level = finalLevel;
@@ -806,9 +726,6 @@ const updateCourse = async (req, res) => {
     await course.save();
 
 
-    // ------------------------------
-    // DELETE OLD REGULAR LECTURES
-    // ------------------------------
 
     await Lecture.deleteMany({
       course: course._id,
@@ -816,9 +733,6 @@ const updateCourse = async (req, res) => {
     });
 
 
-    // ------------------------------
-    // CREATE NEW REGULAR LECTURES
-    // ------------------------------
 
     const lectures =
       scheduleDates.map((date) => ({
@@ -927,9 +841,6 @@ const deleteCourse = async (req, res) => {
   }
 };
 
-// --------------------------------------------------
-// EXPORT
-// --------------------------------------------------
 
 module.exports = {
   createCourse,

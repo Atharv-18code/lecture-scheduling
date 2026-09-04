@@ -50,7 +50,6 @@ const InstructorDashboard = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
 
-      {/* Header */}
       <header className="border-b border-slate-800 bg-slate-900">
         <div className="flex items-center justify-between px-8 py-5">
 
@@ -88,10 +87,8 @@ const InstructorDashboard = () => {
         </div>
       </header>
 
-      {/* Main */}
       <main className="p-8">
 
-        {/* Welcome */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold">
             Welcome, {user?.name}
@@ -102,7 +99,6 @@ const InstructorDashboard = () => {
           </p>
         </div>
 
-        {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
 
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
@@ -142,14 +138,12 @@ const InstructorDashboard = () => {
 
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg">
             {error}
           </div>
         )}
 
-        {/* Lectures */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
 
           <div className="p-6 border-b border-slate-800">
@@ -170,7 +164,7 @@ const InstructorDashboard = () => {
             <div className="p-10 text-center">
 
               <div className="text-5xl mb-4">
-                📚
+                ðŸ“š
               </div>
 
               <h4 className="text-lg font-semibold">

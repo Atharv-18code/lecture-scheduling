@@ -67,7 +67,6 @@ const checkConflict = async ({
   );
 };
 
-// Instructor requests extra lecture
 const createExtraLectureRequest =
   async (req, res) => {
     try {
@@ -228,7 +227,6 @@ const createExtraLectureRequest =
     }
   };
 
-// Instructor sees own requests
 const getMyExtraLectureRequests =
   async (req, res) => {
     try {
@@ -262,7 +260,6 @@ const getMyExtraLectureRequests =
     }
   };
 
-// Admin sees all requests
 const getExtraLectureRequests =
   async (req, res) => {
     try {
@@ -298,7 +295,6 @@ const getExtraLectureRequests =
     }
   };
 
-// Admin approves request
 const approveExtraLecture =
   async (req, res) => {
     try {
@@ -411,7 +407,6 @@ const approveExtraLecture =
     }
   };
 
-// Admin rejects request
 const rejectExtraLecture =
   async (req, res) => {
     try {

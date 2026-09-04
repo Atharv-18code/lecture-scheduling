@@ -70,9 +70,6 @@ const lectureSchema = new mongoose.Schema(
   }
 );
 
-// Useful for finding an instructor's lectures quickly.
-// NOT unique because multiple non-overlapping lectures
-// can exist on the same day.
 lectureSchema.index({
   instructor: 1,
   date: 1,

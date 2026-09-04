@@ -126,7 +126,6 @@ const Lectures = () => {
 
   return (
     <div className="p-8">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
           <div className="flex items-center gap-3">
@@ -155,14 +154,12 @@ const Lectures = () => {
         </button>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      {/* Filters */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6">
         <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
           <div className="relative lg:w-96">
@@ -220,7 +217,6 @@ const Lectures = () => {
         </div>
       </div>
 
-      {/* Content */}
       {loading ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-10 text-center text-slate-500">
           Loading lectures...
@@ -238,7 +234,6 @@ const Lectures = () => {
         </div>
       ) : (
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-          {/* Desktop table */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
@@ -381,7 +376,6 @@ const Lectures = () => {
             </table>
           </div>
 
-          {/* Mobile cards */}
           <div className="lg:hidden divide-y divide-slate-100">
             {filteredLectures.map(
               (lecture) => (
