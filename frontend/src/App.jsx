@@ -1,6 +1,7 @@
 import {
   Routes,
-  Route
+  Route,
+  Navigate
 } from "react-router-dom";
 
 import Login from "./pages/Login";
@@ -13,17 +14,15 @@ import Instructors from "./pages/admin/Instructors";
 import Courses from "./pages/admin/Courses";
 import Lectures from "./pages/admin/Lectures";
 import Notifications from "./pages/admin/Notifications";
+import ExtraLectureRequests from "./pages/admin/ExtraLectureRequests";
 
 import InstructorDashboard from "./pages/instructor/InstructorDashboard";
 
 const App = () => {
   return (
     <Routes>
-      
-      <Routes>
-  <Route path="/" element={<Navigate to="/login" replace />} />
-  <Route path="/login" element={<Login />} />
-</Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<Login />} />
 
       <Route
         path="/admin"
@@ -56,6 +55,11 @@ const App = () => {
         <Route
           path="notifications"
           element={<Notifications />}
+        />
+
+        <Route
+          path="extra-lectures"
+          element={<ExtraLectureRequests />}
         />
       </Route>
 

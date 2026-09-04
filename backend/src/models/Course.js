@@ -74,7 +74,7 @@ const courseSchema = new mongoose.Schema(
   }
 );
 
-courseSchema.pre("validate", function (next) {
+courseSchema.pre("validate", function () {
   if (
     this.startDate &&
     this.endDate &&
@@ -107,7 +107,6 @@ courseSchema.pre("validate", function (next) {
     }
   }
 
-  next();
 });
 
 const Course =

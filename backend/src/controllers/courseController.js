@@ -1,6 +1,6 @@
-const Course = require("../models/course");
-const Lecture = require("../models/lecture");
-const User = require("../models/user");
+const Course = require("../models/Course");
+const Lecture = require("../models/Lecture");
+const User = require("../models/User");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 
@@ -349,10 +349,17 @@ const createCourse = async (req, res) => {
     let imageUrl = "";
 
     if (req.file) {
-      imageUrl =
-        await uploadToCloudinary(
-          req.file.buffer
+      try {
+        imageUrl =
+          await uploadToCloudinary(
+            req.file.buffer
+          );
+      } catch (error) {
+        console.error(
+          "Course image upload failed:",
+          error.message
         );
+      }
     }
 
 
